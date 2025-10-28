@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { PlusCircle, Edit, Truck, Package, Anchor, Building, FileDown } from 'lucide-react';
+import { PlusCircle, Edit, Truck, Package, Anchor, Building, FileDown, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { initialDepartures } from '@/lib/data';
@@ -14,6 +14,17 @@ import { EditDepartureDialog } from './edit-departure-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -44,6 +55,8 @@ export default function DepartureDashboard() {
   const [departures, setDepartures] = useState<Departure[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingDeparture, setDeletingDeparture] = useState<Departure | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -73,6 +86,23 @@ export default function DepartureDashboard() {
   const handleEdit = (departure: Departure) => {
     setEditingDeparture(departure);
     setIsDialogOpen(true);
+  };
+
+  const handleDelete = (departure: Departure) => {
+    setDeletingDeparture(departure);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletingDeparture) {
+      setDepartures(departures.filter(d => d.id !== deletingDeparture.id));
+      toast({
+        title: "Departure Deleted",
+        description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
+      });
+      setIsDeleteDialogOpen(false);
+      setDeletingDeparture(null);
+    }
   };
 
   const handleSave = (savedDeparture: Departure) => {
@@ -197,6 +227,10 @@ export default function DepartureDashboard() {
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Edit</span>
                         </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -218,6 +252,21 @@ export default function DepartureDashboard() {
         departure={editingDeparture}
         onSave={handleSave}
       />
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the departure
+                      for <span className="font-semibold">{deletingDeparture?.carrier}</span> with trailer <span className="font-semibold">{deletingDeparture?.trailerNumber}</span>.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
