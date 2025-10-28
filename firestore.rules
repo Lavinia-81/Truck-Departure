@@ -1,0 +1,53 @@
+/**
+ * @file Firebase Security Rules for Depot Dispatch Display
+ *
+ * @core_philosophy This ruleset enforces a role-based access control model for managing dispatch schedules and carrier information.
+ *  All read operations are public. Write operations are restricted to authorized personnel (admins).
+ * @data_structure The database consists of two top-level collections: `dispatchSchedules` and `carriers`.
+ *  - `/dispatchSchedules/{dispatchScheduleId}`: Stores dispatch schedule entries.
+ *  - `/carriers/{carrierId}`: Stores carrier company information.
+ * @key_security_decisions
+ *  - Public read access is granted to both `dispatchSchedules` and `carriers` collections for display purposes.
+ *  - Write access (create, update, delete) is restricted and requires custom authorization logic.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Grants public read access and restricts write access to authorized personnel (admins) for dispatch schedules.
+     * @path /dispatchSchedules/{dispatchScheduleId}
+     * @allow (get, list) Anyone can read dispatch schedules.
+     * @deny (create, update, delete) Only authorized personnel (admins) can create, update, or delete dispatch schedules.
+     * @principle Public read, restricted write.
+     */
+    match /dispatchSchedules/{dispatchScheduleId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Grants public read access and restricts write access to authorized personnel (admins) for carrier information.
+     * @path /carriers/{carrierId}
+     * @allow (get, list) Anyone can read carrier information.
+     * @deny (create, update, delete) Only authorized personnel (admins) can create, update, or delete carrier information.
+     * @principle Public read, restricted write.
+     */
+    match /carriers/{carrierId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Helper function to check if the user is an admin
+    function isAdmin() {
+      // In a real application, this function would need to check against a database of authorized users.
+      // For prototyping, we'll assume that any authenticated user is an admin.
+      return isSignedIn();
+    }
+
+    // Helper function to check if the user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+  }
+}

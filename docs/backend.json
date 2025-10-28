@@ -1,0 +1,125 @@
+{
+  "entities": {
+    "DispatchSchedule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DispatchSchedule",
+      "type": "object",
+      "description": "Represents the schedule for truck dispatches from the depot.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Dispatch Schedule entry."
+        },
+        "carrierId": {
+          "type": "string",
+          "description": "Reference to Carrier. (Relationship: Carrier 1:N DispatchSchedule)"
+        },
+        "destination": {
+          "type": "string",
+          "description": "The final destination location for the truck."
+        },
+        "via": {
+          "type": "string",
+          "description": "The first stop on the route, if applicable."
+        },
+        "trailerNumber": {
+          "type": "string",
+          "description": "The trailer number assigned to the truck."
+        },
+        "collectionTime": {
+          "type": "string",
+          "description": "The scheduled collection time for the truck. Format: date-time",
+          "format": "date-time"
+        },
+        "bayDoor": {
+          "type": "string",
+          "description": "The bay door assigned for loading the truck."
+        },
+        "sealNumber": {
+          "type": "string",
+          "description": "The seal number assigned to the truck (if applicable)."
+        },
+        "scheduleNumber": {
+          "type": "string",
+          "description": "The schedule number associated with the dispatch."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the dispatch (e.g., Waiting, Loading, Departed, Cancelled, Delayed)."
+        }
+      },
+      "required": [
+        "id",
+        "carrierId",
+        "destination",
+        "collectionTime",
+        "bayDoor",
+        "scheduleNumber",
+        "status"
+      ]
+    },
+    "Carrier": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Carrier",
+      "type": "object",
+      "description": "Represents a carrier company.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Carrier."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the carrier company (e.g., Royal Mail, EVRI)."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/dispatchSchedules/{dispatchScheduleId}",
+        "definition": {
+          "entityName": "DispatchSchedule",
+          "schema": {
+            "$ref": "#/backend/entities/DispatchSchedule"
+          },
+          "description": "Collection of dispatch schedule entries. Includes all details for each dispatch, such as carrier, destination, time, and status.",
+          "params": [
+            {
+              "name": "dispatchScheduleId",
+              "description": "Unique identifier for the dispatch schedule entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/carriers/{carrierId}",
+        "definition": {
+          "entityName": "Carrier",
+          "schema": {
+            "$ref": "#/backend/entities/Carrier"
+          },
+          "description": "Collection of carrier companies.",
+          "params": [
+            {
+              "name": "carrierId",
+              "description": "Unique identifier for the carrier."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore database structure is designed to support the Depot Dispatch Display application with a focus on real-time updates, schedule management, and clear presentation of information for drivers. Authorization Independence is achieved by ensuring that all data required for display and authorization is readily available within each `DispatchSchedule` document, removing the need for complex `get()` calls in security rules. The segregation principle is applied by storing all dispatch schedules in a single collection, ensuring homogeneous security posture. This design will allow for simple reads for the display and straightforward updates via an admin interface. All data relating to schedules is stored in Firestore to ensure persistence, as per the user request.\n\nThe structure uses a single collection, `/dispatchSchedules`, to store all schedule entries. Each document within this collection represents a single dispatch schedule. To facilitate easy listing and querying of dispatch schedules, and enable Authorization Independence, key attributes from the `Carrier` document, like the carrier name, could be denormalized into each `DispatchSchedule` document, although in this design, we assume a role-based access control mechanism for editing schedules negates the need for this, and that display to drivers is public information.\n\nThis structure supports the required QAPs by:\n\n*   **Secure List Operations:** By storing all dispatch schedules in a single collection and ensuring appropriate security rules that limit write access to authorized personnel (admins), we can enable secure `list` operations for the display board.\n*   **Admin Schedule Management:** Authorized personnel can modify departure schedules directly through an admin interface (not detailed in the data structure but assumed in access control), which updates the documents in the `/dispatchSchedules` collection. Since all documents have the same security needs (only admins can edit), the structure facilitates easy to define security rules."
+  }
+}
