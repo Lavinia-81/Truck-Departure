@@ -12,8 +12,8 @@ import { format, parseISO } from "date-fns"
 
 const formSchema = z.object({
   carrier: z.enum(CARRIERS),
-  destination: z.string().min(2, "Destination is required."),
   via: z.string().optional(),
+  destination: z.string().min(2, "Destination is required."),
   trailerNumber: z.string().min(1, "Trailer number is required."),
   collectionTime: z.string().refine((val) => !isNaN(Date.parse(val)), "Invalid date format"),
   bayDoor: z.coerce.number().int().min(1, "Bay door is required."),
@@ -94,8 +94,8 @@ export function DepartureForm({ departure, onSave, onCancel }: DepartureFormProp
               </FormItem>
             )}
           />
-          <FormField control={form.control} name="destination" render={({ field }) => (<FormItem><FormLabel>Destination</FormLabel><FormControl><Input placeholder="e.g., London" {...field} /></FormControl><FormMessage /></FormItem>)} />
-          <FormField control={form.control} name="via" render={({ field }) => (<FormItem><FormLabel>Via</FormLabel><FormControl><Input placeholder="e.g., Birmingham (optional)" {...field} /></FormControl><FormMessage /></FormItem>)} />
+          <FormField control={form.control} name="via" render={({ field }) => (<FormItem><FormLabel>Via (First Stop)</FormLabel><FormControl><Input placeholder="e.g., Birmingham (optional)" {...field} /></FormControl><FormMessage /></FormItem>)} />
+          <FormField control={form.control} name="destination" render={({ field }) => (<FormItem><FormLabel>Final Destination</FormLabel><FormControl><Input placeholder="e.g., London" {...field} /></FormControl><FormMessage /></FormItem>)} />
           <FormField control={form.control} name="trailerNumber" render={({ field }) => (<FormItem><FormLabel>Trailer Number</FormLabel><FormControl><Input placeholder="e.g., TR-12345" {...field} /></FormControl><FormMessage /></FormItem>)} />
           <FormField control={form.control} name="scheduleNumber" render={({ field }) => (<FormItem><FormLabel>Schedule Number</FormLabel><FormControl><Input placeholder="e.g., SCH-001" {...field} /></FormControl><FormMessage /></FormItem>)} />
           <FormField control={form.control} name="collectionTime" render={({ field }) => (<FormItem><FormLabel>Collection Time</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />

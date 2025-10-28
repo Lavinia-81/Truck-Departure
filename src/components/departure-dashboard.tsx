@@ -105,18 +105,18 @@ export default function DepartureDashboard() {
       <CardContent>
         <div className="relative w-full overflow-auto">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Carrier</TableHead>
-                <TableHead>Destination</TableHead>
-                <TableHead>Via</TableHead>
-                <TableHead>Trailer</TableHead>
-                <TableHead>Collection Time</TableHead>
-                <TableHead>Bay</TableHead>
-                <TableHead>Seal No.</TableHead>
-                <TableHead>Schedule No.</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+            <TableHeader className="bg-primary/90">
+              <TableRow className="border-primary/90 hover:bg-primary/90">
+                <TableHead className="text-primary-foreground">Carrier</TableHead>
+                <TableHead className="text-primary-foreground">Via</TableHead>
+                <TableHead className="text-primary-foreground">Destination</TableHead>
+                <TableHead className="text-primary-foreground">Trailer</TableHead>
+                <TableHead className="text-primary-foreground">Collection Time</TableHead>
+                <TableHead className="text-primary-foreground">Bay</TableHead>
+                <TableHead className="text-primary-foreground">Seal No.</TableHead>
+                <TableHead className="text-primary-foreground">Schedule No.</TableHead>
+                <TableHead className="text-primary-foreground">Status</TableHead>
+                <TableHead className="text-right text-primary-foreground">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,8 +132,8 @@ export default function DepartureDashboard() {
                           <span>{d.carrier}</span>
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{d.destination}</TableCell>
                       <TableCell>{d.via || 'N/A'}</TableCell>
+                      <TableCell className="font-medium">{d.destination}</TableCell>
                       <TableCell>{d.trailerNumber}</TableCell>
                       <TableCell>{format(parseISO(d.collectionTime), 'HH:mm')}</TableCell>
                       <TableCell>{d.bayDoor}</TableCell>
