@@ -35,11 +35,11 @@ body {
     --radius: 0.5rem;
   }
   .dark {
-    --background: 232 20% 11%;
+    --background: 232 20% 13%;
     --foreground: 0 0% 98%;
-    --card: 232 20% 11%;
+    --card: 232 20% 13%;
     --card-foreground: 0 0% 98%;
-    --popover: 232 20% 11%;
+    --popover: 232 20% 13%;
     --popover-foreground: 0 0% 98%;
     --primary: 231 41% 77.1%;
     --primary-foreground: 232 64% 20%;
