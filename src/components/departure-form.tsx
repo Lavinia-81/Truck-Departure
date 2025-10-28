@@ -38,6 +38,7 @@ export function DepartureForm({ departure, onSave, onCancel }: DepartureFormProp
       }
     : {
         status: 'Waiting',
+        collectionTime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       };
   
   const form = useForm<DepartureFormValues>({
@@ -47,7 +48,7 @@ export function DepartureForm({ departure, onSave, onCancel }: DepartureFormProp
 
   function onSubmit(data: DepartureFormValues) {
     const newDeparture: Departure = {
-      id: departure?.id || new Date().getTime().toString(),
+      id: departure?.id || '', // ID will be handled by parent component (Firestore)
       ...data,
       collectionTime: new Date(data.collectionTime).toISOString(),
     };

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Truck, Package, Anchor, Building, Trash2, PlusCircle } from 'lucide-react';
+import { Edit, Truck, Package, Anchor, Building, Trash2, PlusCircle, Database } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier, CARRIERS } from '@/lib/types';
 import { initialDepartures } from '@/lib/data';
@@ -26,12 +26,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import Header from './header';
 import { DashboardActions } from './dashboard-actions';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
-  Loading: 'bg-yellow-200 text-yellow-900 border-yellow-300 dark:bg-yellow-800/50 dark:text-yellow-200 dark:border-yellow-700',
+  Loading: 'bg-yellow-300 text-yellow-900 border-yellow-400 dark:bg-yellow-800/50 dark:text-yellow-200 dark:border-yellow-700',
   Waiting: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800',
-  Cancelled: 'bg-red-300 text-red-900 border-red-400 dark:bg-red-800/50 dark:text-red-200 dark:border-red-700',
+  Cancelled: 'bg-red-500 text-red-900 border-red-600 dark:bg-red-800/50 dark:text-red-200 dark:border-red-700',
   Delayed: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
 };
 
@@ -53,32 +55,31 @@ const carrierStyles: Record<Carrier, CarrierStyle> = {
 };
 
 export default function DepartureDashboard() {
-  const [departures, setDepartures] = useState<Departure[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingDeparture, setDeletingDeparture] = useState<Departure | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const firestore = useFirestore();
+  const departuresCol = useMemoFirebase(() => collection(firestore, 'dispatchSchedules'), [firestore]);
+  const { data: departures, isLoading } = useCollection<Departure>(departuresCol);
 
   useEffect(() => {
-    // Sort initial data by collection time
-    const sortedInitial = [...initialDepartures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime());
-    setDepartures(sortedInitial);
+    if (!departures || isLoading) return;
 
     const interval = setInterval(() => {
-      setDepartures(prevDepartures =>
-        prevDepartures.map(d => {
-          if (d.status === 'Waiting' && new Date() > new Date(d.collectionTime)) {
-            return { ...d, status: 'Delayed' };
-          }
-          return d;
-        })
-      );
+      departures.forEach(d => {
+        if (d.status === 'Waiting' && new Date() > new Date(d.collectionTime)) {
+            const departureRef = doc(firestore, 'dispatchSchedules', d.id);
+            updateDocumentNonBlocking(departureRef, { status: 'Delayed' });
+        }
+      });
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, []);
+  }, [departures, firestore, isLoading]);
 
   const handleAddNew = () => {
     setEditingDeparture(null);
@@ -97,7 +98,8 @@ export default function DepartureDashboard() {
 
   const confirmDelete = () => {
     if (deletingDeparture) {
-      setDepartures(departures.filter(d => d.id !== deletingDeparture.id));
+      const departureRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
+      deleteDocumentNonBlocking(departureRef);
       toast({
         title: "Departure Deleted",
         description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
@@ -108,28 +110,41 @@ export default function DepartureDashboard() {
   };
 
   const handleSave = (savedDeparture: Departure) => {
-    const isNew = !departures.some(d => d.id === savedDeparture.id);
-    let updatedDepartures;
-
-    if (isNew) {
-      updatedDepartures = [...departures, savedDeparture];
-    } else {
-      const originalDeparture = departures.find(d => d.id === savedDeparture.id);
-      if (originalDeparture?.status !== 'Departed' && savedDeparture.status === 'Departed') {
-        toast({
-          title: "Truck Departed",
-          description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
-        });
-      }
-      updatedDepartures = departures.map(d => (d.id === savedDeparture.id ? savedDeparture : d));
-    }
+    const { id, ...departureData } = savedDeparture;
+    const isNew = !id;
     
-    // Re-sort after adding/editing
-    updatedDepartures.sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime());
-    setDepartures(updatedDepartures);
+    if (isNew) {
+        addDocumentNonBlocking(departuresCol, departureData);
+        toast({
+            title: "Departure Added",
+            description: `A new departure for ${savedDeparture.carrier} has been added.`
+        });
+    } else {
+        const originalDeparture = departures?.find(d => d.id === id);
+        if (originalDeparture?.status !== 'Departed' && savedDeparture.status === 'Departed') {
+            toast({
+                title: "Truck Departed",
+                description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
+            });
+        }
+        const departureRef = doc(firestore, 'dispatchSchedules', id);
+        setDocumentNonBlocking(departureRef, departureData, { merge: true });
+        toast({
+            title: "Departure Updated",
+            description: `The departure for ${savedDeparture.carrier} has been updated.`
+        });
+    }
   };
 
   const handleExport = () => {
+    if (!departures) {
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "No data available to export.",
+      });
+      return;
+    }
     const dataToExport = departures.map(d => ({
       'Carrier': d.carrier,
       'Via': d.via || 'N/A',
@@ -146,17 +161,9 @@ export default function DepartureDashboard() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Departures');
     
-    // Set column widths
     worksheet['!cols'] = [
-        { wch: 15 }, // Carrier
-        { wch: 15 }, // Via
-        { wch: 15 }, // Destination
-        { wch: 15 }, // Trailer
-        { wch: 20 }, // Collection Time
-        { wch: 10 }, // Bay
-        { wch: 15 }, // Seal No.
-        { wch: 15 }, // Schedule No.
-        { wch: 12 }, // Status
+        { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+        { wch: 20 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
     ];
     
     XLSX.writeFile(workbook, `departures_export_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
@@ -171,7 +178,7 @@ export default function DepartureDashboard() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: 'binary' });
@@ -179,8 +186,7 @@ export default function DepartureDashboard() {
         const worksheet = workbook.Sheets[sheetName];
         const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        const newDepartures: Departure[] = json.map((row, index) => {
-          // Excel date serial number to JS Date
+        const newDepartures: Omit<Departure, 'id'>[] = json.map((row) => {
           const collectionTimeValue = row['Collection Time'];
           if (!collectionTimeValue) return null;
           
@@ -195,25 +201,26 @@ export default function DepartureDashboard() {
           if (isNaN(collectionTime.getTime())) return null;
 
           return {
-            id: `import-${new Date().getTime()}-${index}`,
             carrier: row['Carrier'] as Carrier,
             destination: row['Destination'],
             via: row['Via'] === 'N/A' ? undefined : row['Via'],
-            trailerNumber: row['Trailer'],
+            trailerNumber: String(row['Trailer']),
             collectionTime: collectionTime.toISOString(),
             bayDoor: Number(row['Bay']),
-            sealNumber: row['Seal No.'] === 'N/A' ? undefined : row['Seal No.'],
-            scheduleNumber: row['Schedule No.'],
+            sealNumber: row['Seal No.'] === 'N/A' ? undefined : String(row['Seal No.']),
+            scheduleNumber: String(row['Schedule No.']),
             status: row['Status'] as Status,
           };
-        }).filter((d): d is Departure => d !== null && d.carrier && d.destination && d.collectionTime && CARRIERS.includes(d.carrier));
+        }).filter((d): d is Omit<Departure, 'id'> => d !== null && d.carrier && d.destination && d.collectionTime && CARRIERS.includes(d.carrier));
 
-        if(newDepartures.length > 0) {
-            setDepartures(prev => {
-                const updated = [...prev, ...newDepartures];
-                updated.sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime());
-                return updated;
+        if (newDepartures.length > 0) {
+            const batch = writeBatch(firestore);
+            newDepartures.forEach(departure => {
+                const docRef = doc(departuresCol); // Create a new doc with a generated id
+                batch.set(docRef, departure);
             });
+            await batch.commit();
+
             toast({
                 title: "Import Successful",
                 description: `${newDepartures.length} departures have been added from the Excel file.`,
@@ -236,11 +243,11 @@ export default function DepartureDashboard() {
     };
     reader.readAsBinaryString(file);
     
-    // Reset file input
     if(event.target) event.target.value = '';
   };
   
   const sortedDepartures = useMemo(() => {
+      if (!departures) return [];
       return [...departures].sort((a, b) => {
         const aTime = new Date(a.collectionTime).getTime();
         const bTime = new Date(b.collectionTime).getTime();
@@ -248,13 +255,42 @@ export default function DepartureDashboard() {
       });
   }, [departures])
 
+  const seedDatabase = async () => {
+    try {
+        const batch = writeBatch(firestore);
+        initialDepartures.forEach(departure => {
+            const {id, ...departureData} = departure;
+            const docRef = doc(firestore, 'dispatchSchedules', id);
+            batch.set(docRef, departureData);
+        });
+        await batch.commit();
+        toast({
+            title: "Database Seeded",
+            description: "Initial departure data has been loaded into Firestore."
+        });
+    } catch (error) {
+        console.error("Error seeding database:", error);
+        toast({
+            variant: "destructive",
+            title: "Seeding Failed",
+            description: "Could not load initial data into Firestore.",
+        });
+    }
+  };
+
   return (
     <>
     <Header actions={
-        <DashboardActions 
-            onExport={handleExport}
-            onImportClick={handleImportClick}
-        />
+        <div className="flex items-center gap-2">
+            <DashboardActions 
+                onExport={handleExport}
+                onImportClick={handleImportClick}
+            />
+            <Button size="sm" variant="outline" onClick={seedDatabase}>
+                <Database className="mr-2 h-4 w-4" />
+                Seed Database
+            </Button>
+        </div>
     } />
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <Card>
@@ -284,7 +320,12 @@ export default function DepartureDashboard() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {sortedDepartures.length > 0 ? (
+                {isLoading && (
+                    <TableRow>
+                        <TableCell colSpan={10} className="text-center h-24">Loading departures...</TableCell>
+                    </TableRow>
+                )}
+                {!isLoading && sortedDepartures.length > 0 ? (
                     sortedDepartures.map(d => {
                     const carrierStyle = carrierStyles[d.carrier];
                     const IconComponent = carrierStyle.icon;
@@ -319,7 +360,7 @@ export default function DepartureDashboard() {
                     );
                     })
                 ) : (
-                    <TableRow>
+                    !isLoading && <TableRow>
                     <TableCell colSpan={10} className="text-center">
                         No departures scheduled.
                     </TableCell>
