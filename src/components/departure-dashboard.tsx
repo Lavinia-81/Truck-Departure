@@ -6,8 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { PlusCircle, Edit, Truck, Package, Anchor, Building, FileDown, Trash2, FileUp } from 'lucide-react';
-import { format, parse, parseISO } from 'date-fns';
+import { Edit, Truck, Package, Anchor, Building, Trash2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier, CARRIERS } from '@/lib/types';
 import { initialDepartures } from '@/lib/data';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -24,7 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
+import Header from './header';
+import { DashboardActions } from './dashboard-actions';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -180,21 +181,32 @@ export default function DepartureDashboard() {
 
         const newDepartures: Departure[] = json.map((row, index) => {
           // Excel date serial number to JS Date
-          const collectionTime = XLSX.SSF.parse_date_code(row['Collection Time']);
+          const collectionTimeValue = row['Collection Time'];
+          if (!collectionTimeValue) return null;
           
+          let collectionTime;
+          if (typeof collectionTimeValue === 'number') {
+            const parsedDate = XLSX.SSF.parse_date_code(collectionTimeValue);
+            collectionTime = new Date(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S);
+          } else {
+             collectionTime = new Date(collectionTimeValue);
+          }
+          
+          if (isNaN(collectionTime.getTime())) return null;
+
           return {
             id: `import-${new Date().getTime()}-${index}`,
             carrier: row['Carrier'] as Carrier,
             destination: row['Destination'],
             via: row['Via'] === 'N/A' ? undefined : row['Via'],
             trailerNumber: row['Trailer'],
-            collectionTime: new Date(collectionTime.y, collectionTime.m - 1, collectionTime.d, collectionTime.H, collectionTime.M, collectionTime.S).toISOString(),
+            collectionTime: collectionTime.toISOString(),
             bayDoor: Number(row['Bay']),
             sealNumber: row['Seal No.'] === 'N/A' ? undefined : row['Seal No.'],
             scheduleNumber: row['Schedule No.'],
             status: row['Status'] as Status,
           };
-        }).filter(d => d.carrier && d.destination && d.collectionTime && CARRIERS.includes(d.carrier)); // Basic validation
+        }).filter((d): d is Departure => d !== null && d.carrier && d.destination && d.collectionTime && CARRIERS.includes(d.carrier));
 
         if(newDepartures.length > 0) {
             setDepartures(prev => {
@@ -225,7 +237,7 @@ export default function DepartureDashboard() {
     reader.readAsBinaryString(file);
     
     // Reset file input
-    event.target.value = '';
+    if(event.target) event.target.value = '';
   };
   
   const sortedDepartures = useMemo(() => {
@@ -237,88 +249,85 @@ export default function DepartureDashboard() {
   }, [departures])
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle>Departures</CardTitle>
-        <div className="flex items-center gap-2">
+    <>
+    <Header actions={
+        <DashboardActions 
+            onAddNew={handleAddNew}
+            onExport={handleExport}
+            onImportClick={handleImportClick}
+        />
+    } />
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle>Departures</CardTitle>
+        </CardHeader>
+        <CardContent>
             <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".xlsx, .xls" className="hidden" />
-            <Button size="sm" variant="outline" onClick={handleImportClick}>
-              <FileUp className="mr-2 h-4 w-4" />
-              Import from Excel
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleExport}>
-              <FileDown className="mr-2 h-4 w-4" />
-              Export to Excel
-            </Button>
-            <Button size="sm" onClick={handleAddNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Departure
-            </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="relative w-full overflow-auto">
-          <Table>
-            <TableHeader className="bg-primary/90">
-              <TableRow className="border-primary/90 hover:bg-primary/90">
-                <TableHead className="text-primary-foreground">Carrier</TableHead>
-                <TableHead className="text-primary-foreground">Via</TableHead>
-                <TableHead className="text-primary-foreground">Destination</TableHead>
-                <TableHead className="text-primary-foreground">Trailer</TableHead>
-                <TableHead className="text-primary-foreground">Collection Time</TableHead>
-                <TableHead className="text-primary-foreground">Bay</TableHead>
-                <TableHead className="text-primary-foreground">Seal No.</TableHead>
-                <TableHead className="text-primary-foreground">Schedule No.</TableHead>
-                <TableHead className="text-primary-foreground">Status</TableHead>
-                <TableHead className="text-right text-primary-foreground">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedDepartures.length > 0 ? (
-                sortedDepartures.map(d => {
-                  const carrierStyle = carrierStyles[d.carrier];
-                  const IconComponent = carrierStyle.icon;
-                  return (
-                    <TableRow key={d.id} className={cn('transition-colors', statusColors[d.status])}>
-                      <TableCell>
-                        <Badge className={cn('flex items-center gap-2', carrierStyle.className)}>
-                          {IconComponent && <IconComponent className="h-4 w-4" />}
-                          {carrierStyle.iconUrl && <Image src={carrierStyle.iconUrl} alt={`${d.carrier} logo`} width={16} height={16} className="rounded-sm" />}
-                          <span>{d.carrier}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{d.via || 'N/A'}</TableCell>
-                      <TableCell className="font-medium">{d.destination}</TableCell>
-                      <TableCell>{d.trailerNumber}</TableCell>
-                      <TableCell>{format(parseISO(d.collectionTime), 'HH:mm')}</TableCell>
-                      <TableCell>{d.bayDoor}</TableCell>
-                      <TableCell>{d.sealNumber || 'N/A'}</TableCell>
-                      <TableCell>{d.scheduleNumber}</TableCell>
-                      <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center">
-                    No departures scheduled.
-                  </TableCell>
+            <div className="relative w-full overflow-auto">
+            <Table>
+                <TableHeader className="bg-primary/90">
+                <TableRow className="border-primary/90 hover:bg-primary/90">
+                    <TableHead className="text-primary-foreground">Carrier</TableHead>
+                    <TableHead className="text-primary-foreground">Via</TableHead>
+                    <TableHead className="text-primary-foreground">Destination</TableHead>
+                    <TableHead className="text-primary-foreground">Trailer</TableHead>
+                    <TableHead className="text-primary-foreground">Collection Time</TableHead>
+                    <TableHead className="text-primary-foreground">Bay</TableHead>
+                    <TableHead className="text-primary-foreground">Seal No.</TableHead>
+                    <TableHead className="text-primary-foreground">Schedule No.</TableHead>
+                    <TableHead className="text-primary-foreground">Status</TableHead>
+                    <TableHead className="text-right text-primary-foreground">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+                </TableHeader>
+                <TableBody>
+                {sortedDepartures.length > 0 ? (
+                    sortedDepartures.map(d => {
+                    const carrierStyle = carrierStyles[d.carrier];
+                    const IconComponent = carrierStyle.icon;
+                    return (
+                        <TableRow key={d.id} className={cn('transition-colors', statusColors[d.status])}>
+                        <TableCell>
+                            <Badge className={cn('flex items-center gap-2', carrierStyle.className)}>
+                            {IconComponent && <IconComponent className="h-4 w-4" />}
+                            {carrierStyle.iconUrl && <Image src={carrierStyle.iconUrl} alt={`${d.carrier} logo`} width={16} height={16} className="rounded-sm" />}
+                            <span>{d.carrier}</span>
+                            </Badge>
+                        </TableCell>
+                        <TableCell>{d.via || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">{d.destination}</TableCell>
+                        <TableCell>{d.trailerNumber}</TableCell>
+                        <TableCell>{format(parseISO(d.collectionTime), 'HH:mm')}</TableCell>
+                        <TableCell>{d.bayDoor}</TableCell>
+                        <TableCell>{d.sealNumber || 'N/A'}</TableCell>
+                        <TableCell>{d.scheduleNumber}</TableCell>
+                        <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete</span>
+                            </Button>
+                        </TableCell>
+                        </TableRow>
+                    );
+                    })
+                ) : (
+                    <TableRow>
+                    <TableCell colSpan={10} className="text-center">
+                        No departures scheduled.
+                    </TableCell>
+                    </TableRow>
+                )}
+                </TableBody>
+            </Table>
+            </div>
+        </CardContent>
+        </Card>
+    </div>
       <EditDepartureDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
@@ -340,8 +349,6 @@ export default function DepartureDashboard() {
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   );
 }
-
-    

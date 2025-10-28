@@ -1,14 +1,16 @@
 import Link from "next/link"
-import { Truck, Route } from "lucide-react"
+import { Route } from "lucide-react"
 import Clock from "./clock"
 import { Button } from "./ui/button"
 
-export default function Header() {
+export default function Header({ actions }: { actions?: React.ReactNode }) {
   return (
     <header className="sticky top-0 z-50 flex h-auto flex-col items-center gap-3 border-b bg-background px-4 py-3 md:px-6">
       {/* Main header for larger screens */}
       <div className="hidden w-full items-center md:flex">
-        <div className="flex-1" />
+        <div className="flex-1">
+          {actions}
+        </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-1">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
             Truck Departure Dashboard
@@ -31,11 +33,8 @@ export default function Header() {
           Truck Departure Dashboard
         </h1>
         <Clock />
-        <div className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Truck className="h-4 w-4" />
-                <span>Depot Dispatch</span>
-            </div>
+        <div className="flex w-full flex-wrap items-center justify-center gap-2">
+            {actions}
             <Button variant="outline" size="sm" asChild>
                 <Link href="/optimize">
                 <Route className="mr-2 h-4 w-4" />
