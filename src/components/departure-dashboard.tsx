@@ -6,13 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { PlusCircle, Edit, Truck, Package, Anchor, Building } from 'lucide-react';
+import { PlusCircle, Edit, Truck, Package, Anchor, Building, FileDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { initialDepartures } from '@/lib/data';
 import { EditDepartureDialog } from './edit-departure-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import * as XLSX from 'xlsx';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -95,6 +96,39 @@ export default function DepartureDashboard() {
     updatedDepartures.sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime());
     setDepartures(updatedDepartures);
   };
+
+  const handleExport = () => {
+    const dataToExport = departures.map(d => ({
+      'Carrier': d.carrier,
+      'Via': d.via || 'N/A',
+      'Destination': d.destination,
+      'Trailer': d.trailerNumber,
+      'Collection Time': format(parseISO(d.collectionTime), 'yyyy-MM-dd HH:mm'),
+      'Bay': d.bayDoor,
+      'Seal No.': d.sealNumber || 'N/A',
+      'Schedule No.': d.scheduleNumber,
+      'Status': d.status,
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Departures');
+    
+    // Set column widths
+    worksheet['!cols'] = [
+        { wch: 15 }, // Carrier
+        { wch: 15 }, // Via
+        { wch: 15 }, // Destination
+        { wch: 15 }, // Trailer
+        { wch: 20 }, // Collection Time
+        { wch: 10 }, // Bay
+        { wch: 15 }, // Seal No.
+        { wch: 15 }, // Schedule No.
+        { wch: 12 }, // Status
+    ];
+    
+    XLSX.writeFile(workbook, `departures_export_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
   
   const sortedDepartures = useMemo(() => {
       return [...departures].sort((a, b) => {
@@ -106,12 +140,18 @@ export default function DepartureDashboard() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle>Departures</CardTitle>
-        <Button size="sm" onClick={handleAddNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Departure
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleExport}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Export to Excel
+            </Button>
+            <Button size="sm" onClick={handleAddNew}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Departure
+            </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="relative w-full overflow-auto">
