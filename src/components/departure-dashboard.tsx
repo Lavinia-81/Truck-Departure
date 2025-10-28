@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { PlusCircle, Edit } from 'lucide-react';
+import { PlusCircle, Edit, Truck, Package, Ship, Anchor } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { initialDepartures } from '@/lib/data';
@@ -21,11 +21,11 @@ const statusColors: Record<Status, string> = {
   Delayed: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
 };
 
-const carrierBadgeColors: Record<Carrier, string> = {
-    'Royal Mail': 'bg-red-500 hover:bg-red-600 text-white border-red-600',
-    'EVRI': 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600',
-    'Yodel': 'bg-purple-500 hover:bg-purple-600 text-white border-purple-600',
-    'McBurney': 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
+const carrierStyles: Record<Carrier, { className: string; icon: React.ComponentType<{ className?: string }> }> = {
+    'Royal Mail': { className: 'bg-red-500 hover:bg-red-600 text-white border-red-600', icon: Package },
+    'EVRI': { className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600', icon: Truck },
+    'Yodel': { className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700', icon: Ship },
+    'McBurney': { className: 'bg-purple-500 hover:bg-purple-600 text-white border-purple-600', icon: Anchor },
 };
 
 export default function DepartureDashboard() {
@@ -121,25 +121,34 @@ export default function DepartureDashboard() {
             </TableHeader>
             <TableBody>
               {sortedDepartures.length > 0 ? (
-                sortedDepartures.map(d => (
-                  <TableRow key={d.id} className={cn('transition-colors', statusColors[d.status])}>
-                    <TableCell><Badge className={cn(carrierBadgeColors[d.carrier])}>{d.carrier}</Badge></TableCell>
-                    <TableCell className="font-medium">{d.destination}</TableCell>
-                    <TableCell>{d.via || 'N/A'}</TableCell>
-                    <TableCell>{d.trailerNumber}</TableCell>
-                    <TableCell>{format(parseISO(d.collectionTime), 'HH:mm')}</TableCell>
-                    <TableCell>{d.bayDoor}</TableCell>
-                    <TableCell>{d.sealNumber || 'N/A'}</TableCell>
-                    <TableCell>{d.scheduleNumber}</TableCell>
-                    <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                sortedDepartures.map(d => {
+                  const carrierStyle = carrierStyles[d.carrier];
+                  const Icon = carrierStyle.icon;
+                  return (
+                    <TableRow key={d.id} className={cn('transition-colors', statusColors[d.status])}>
+                      <TableCell>
+                        <Badge className={cn('flex items-center gap-2', carrierStyle.className)}>
+                          <Icon className="h-4 w-4" />
+                          <span>{d.carrier}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{d.destination}</TableCell>
+                      <TableCell>{d.via || 'N/A'}</TableCell>
+                      <TableCell>{d.trailerNumber}</TableCell>
+                      <TableCell>{format(parseISO(d.collectionTime), 'HH:mm')}</TableCell>
+                      <TableCell>{d.bayDoor}</TableCell>
+                      <TableCell>{d.sealNumber || 'N/A'}</TableCell>
+                      <TableCell>{d.scheduleNumber}</TableCell>
+                      <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center">

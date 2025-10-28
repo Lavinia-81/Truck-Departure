@@ -17,9 +17,8 @@ export default function Clock() {
   }, [])
 
   return (
-    <div className="text-sm font-medium text-foreground tabular-nums w-40 text-center">
-      <div>{format(time, "EEE, d MMM yyyy")}</div>
-      <div>{format(time, "HH:mm:ss")}</div>
+    <div className="font-medium text-foreground/80 tabular-nums">
+      <span>{format(time, "EEE, d MMM yyyy HH:mm:ss")}</span>
     </div>
   )
 }
