@@ -1,37 +1,41 @@
 /**
- * @file Firebase Security Rules for Firestore.
+ * @fileoverview Firestore Security Rules for the dispatch schedule application.
  *
- * @core_philosophy This ruleset secures the `dispatchSchedules` collection, restricting write access to authenticated users only, while allowing public read access.
- * @data_structure The data is stored in a top-level collection called `dispatchSchedules`, with each document representing a dispatch schedule.
- * @key_security_decisions
- *   - Read access is public.
- *   - Write access is restricted to authenticated users.
- *   - User listing is disallowed.
+ * Core Philosophy:
+ * This ruleset provides open read access to dispatch schedules, while restricting write access
+ * to authenticated users (i.e. logged in users).
+ *
+ * Data Structure:
+ * The data consists of dispatch schedule documents stored in the `/dispatchSchedules` collection.
+ *
+ * Key Security Decisions:
+ * - Unauthenticated listing is enabled.
+ * - Only authenticated users can create, update, or delete dispatch schedules.
+ * - No schema enforcement is done in this prototype phase.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants public read access to dispatch schedules, but restricts write access to authenticated users only.
-     * @path /dispatchSchedules/{dispatchScheduleId}
-     * @allow (get, list) Any user can read dispatch schedules.
-     * @allow (create) An authenticated user can create a dispatch schedule.
-     * @deny (create) An unauthenticated user cannot create a dispatch schedule.
-     * @deny (update) An unauthenticated user cannot update a dispatch schedule.
-     * @deny (delete) An unauthenticated user cannot delete a dispatch schedule.
-     * @principle Allows public read access, but enforces authentication for write access.
+     * @description Grants open read access to dispatch schedules, while restricting write access to authenticated users.
+     * @path /databases/{database}/documents/dispatchSchedules/{dispatchScheduleId}
+     * @allow (get, list): Any user can read dispatch schedules.
+     * @allow (create): Only authenticated users can create dispatch schedules.
+     * @allow (update, delete): Only authenticated users can update or delete dispatch schedules.
+     * @deny   create: If the user is not authenticated.
+     * @deny   update: If the user is not authenticated or the document does not exist.
+     * @deny   delete: If the user is not authenticated or the document does not exist.
+     * @principle Allows public read access while restricting writes to authenticated users.
      */
     match /dispatchSchedules/{dispatchScheduleId} {
-      allow get: if true;
-      allow list: if true;
-
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
       allow delete: if isSignedIn() && resource != null;
     }
 
-    // ---- Helper functions ----
+    // --- Helper functions ---
     function isSignedIn() {
       return request.auth != null;
     }
