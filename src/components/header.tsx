@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Route } from "lucide-react"
+import { Route, Monitor } from "lucide-react"
 import Clock from "./clock"
 import { Button } from "./ui/button"
 
@@ -13,11 +13,17 @@ export default function Header({ actions }: { actions?: React.ReactNode }) {
         </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-1">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-            Truck Departure Dashboard
+            Admin Dashboard
           </h1>
           <Clock />
         </div>
         <div className="flex flex-1 items-center justify-end gap-4">
+           <Button variant="outline" size="sm" asChild>
+            <Link href="/display" target="_blank">
+              <Monitor className="mr-2 h-4 w-4" />
+              Public Display
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/optimize">
               <Route className="mr-2 h-4 w-4" />
@@ -30,11 +36,17 @@ export default function Header({ actions }: { actions?: React.ReactNode }) {
       {/* Mobile header */}
       <div className="flex w-full flex-col items-center gap-3 md:hidden">
         <h1 className="text-xl font-bold tracking-tight">
-          Truck Departure Dashboard
+          Admin Dashboard
         </h1>
         <Clock />
         <div className="flex w-full flex-wrap items-center justify-center gap-2">
             {actions}
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/display" target="_blank">
+                <Monitor className="mr-2 h-4 w-4" />
+                Display
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" asChild>
                 <Link href="/optimize">
                 <Route className="mr-2 h-4 w-4" />

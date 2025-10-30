@@ -26,10 +26,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import Header from './header';
 import { DashboardActions } from './dashboard-actions';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
-import { collection, doc, writeBatch, getDoc, type IdTokenResult } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, useUser, useAuth } from '@/firebase';
+import { collection, doc, writeBatch, type IdTokenResult } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -96,7 +97,8 @@ export default function DepartureDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const firestore = useFirestore();
-  const { user, isUserLoading, auth } = useUser(true);
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const {isAdmin, isLoading: isAdminLoading} = useAdminRole();
   const router = useRouter();
 
@@ -111,19 +113,20 @@ export default function DepartureDashboard() {
 
 
   useEffect(() => {
-    if (!departures || isLoadingDepartures) return;
+    if (!departures || isLoadingDepartures || !isAdmin) return;
 
     const interval = setInterval(() => {
       departures.forEach(d => {
         if (d.status === 'Waiting' && new Date() > new Date(d.collectionTime)) {
             const departureRef = doc(firestore, 'dispatchSchedules', d.id);
-            updateDocumentNonBlocking(departureRef, { status: 'Delayed' });
+            // Use non-blocking update for background status change
+            setDocumentNonBlocking(departureRef, { status: 'Delayed' }, { merge: true });
         }
       });
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, [departures, firestore, isLoadingDepartures]);
+  }, [departures, firestore, isLoadingDepartures, isAdmin]);
 
   const handleAddNew = () => {
     setEditingDeparture(null);
@@ -328,7 +331,12 @@ export default function DepartureDashboard() {
   }
 
   if (isUserLoading || !user) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+     return (
+      <div className="flex min-h-screen flex-col items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Loading Admin Dashboard...</p>
+      </div>
+    )
   }
   
   const headerActions = (

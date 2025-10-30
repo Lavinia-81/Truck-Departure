@@ -1,0 +1,133 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Package, Truck, Anchor, Building } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import type { Departure, Status, Carrier } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import Clock from '@/components/clock';
+
+const statusColors: Record<Status, string> = {
+  Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
+  Loading: 'bg-yellow-300 text-yellow-900 border-yellow-400 dark:bg-yellow-800/50 dark:text-yellow-200 dark:border-yellow-700',
+  Waiting: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800',
+  Cancelled: 'bg-red-500 text-red-900 border-red-600 dark:bg-red-800/50 dark:text-red-200 dark:border-red-700',
+  Delayed: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
+};
+
+interface CarrierStyle {
+  className: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  iconUrl?: string;
+}
+
+const carrierStyles: Record<Carrier, CarrierStyle> = {
+  'Royal Mail': { className: 'bg-red-500 hover:bg-red-600 text-white border-red-600', icon: Package },
+  'EVRI': { className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600', icon: Truck },
+  'Yodel': {
+    className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
+    iconUrl: 'https://is2-ssl.mzstatic.com/image/thumb/Purple112/v4/c2/5d/ce/c25dce82-a611-5b02-4e4f-81b2d9d6ad97/AppIcon-0-0-1x_U007emarketing-0-0-0-10-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/1200x630wa.png'
+  },
+  'McBurney': { className: 'bg-purple-500 hover:bg-purple-600 text-white border-purple-600', icon: Anchor },
+  'Montgomery': { className: 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600', icon: Building },
+};
+
+
+export default function DisplayPage() {
+  const firestore = useFirestore();
+  const departuresCol = useMemoFirebase(() => collection(firestore, 'dispatchSchedules'), [firestore]);
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCol);
+  
+  const sortedDepartures = useMemo(() => {
+    if (!departures) return [];
+    return [...departures].sort((a, b) => {
+      const aTime = new Date(a.collectionTime).getTime();
+      const bTime = new Date(b.collectionTime).getTime();
+      return aTime - bTime;
+    });
+  }, [departures]);
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background text-lg md:text-xl">
+      <header className="sticky top-0 z-50 flex flex-col items-center gap-2 border-b bg-background px-4 py-4 md:px-6">
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
+          Truck Departure Board
+        </h1>
+        <div className="text-xl md:text-2xl">
+          <Clock />
+        </div>
+      </header>
+      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <Card className="flex-1">
+          <CardContent className="p-2 md:p-4">
+            <div className="relative w-full overflow-auto">
+              <Table>
+                <TableHeader className="bg-primary/90 text-xl md:text-2xl">
+                  <TableRow className="border-primary/90 hover:bg-primary/90">
+                    <TableHead className="text-primary-foreground">Carrier</TableHead>
+                    <TableHead className="text-primary-foreground">Via</TableHead>
+                    <TableHead className="text-primary-foreground">Destination</TableHead>
+                    <TableHead className="text-primary-foreground">Trailer</TableHead>
+                    <TableHead className="text-primary-foreground">Time</TableHead>
+                    <TableHead className="text-primary-foreground">Bay</TableHead>
+                    <TableHead className="text-primary-foreground">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="text-base md:text-lg">
+                  {isLoadingDepartures && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center h-48 text-2xl">
+                        Loading Departures...
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoadingDepartures && sortedDepartures.length > 0 ? (
+                    sortedDepartures.map(d => {
+                      const carrierStyle = carrierStyles[d.carrier];
+                      const IconComponent = carrierStyle.icon;
+                      return (
+                        <TableRow key={d.id} className={cn('transition-colors h-16 md:h-20', statusColors[d.status])}>
+                          <TableCell>
+                            <Badge className={cn('flex items-center gap-2 text-base md:text-lg p-2', carrierStyle.className)}>
+                              {IconComponent && <IconComponent className="h-5 w-5 md:h-6 md:w-6" />}
+                              {carrierStyle.iconUrl && <Image src={carrierStyle.iconUrl} alt={`${d.carrier} logo`} width={24} height={24} className="rounded-sm" />}
+                              <span>{d.carrier}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{d.via || '–'}</TableCell>
+                          <TableCell className="font-medium">{d.destination}</TableCell>
+                          <TableCell>{d.trailerNumber}</TableCell>
+                          <TableCell className="font-bold text-xl md:text-2xl">{format(parseISO(d.collectionTime), 'HH:mm')}</TableCell>
+                          <TableCell className="font-bold text-xl md:text-2xl">{d.bayDoor}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="border-current text-base md:text-lg p-2">
+                              {d.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    !isLoadingDepartures && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center h-48 text-2xl">
+                          No Departures Scheduled
+                        </TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
