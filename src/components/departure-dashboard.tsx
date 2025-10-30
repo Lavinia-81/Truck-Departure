@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Truck, Package, Anchor, Building, Trash2, PlusCircle, Database } from 'lucide-react';
+import { Edit, Truck, Package, Anchor, Building, Trash2, PlusCircle, Database, LogOut } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier, CARRIERS } from '@/lib/types';
 import { initialDepartures } from '@/lib/data';
@@ -26,8 +26,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import Header from './header';
 import { DashboardActions } from './dashboard-actions';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
+import { collection, doc, writeBatch, getDoc, type IdTokenResult } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -54,6 +56,37 @@ const carrierStyles: Record<Carrier, CarrierStyle> = {
     'Montgomery': { className: 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600', icon: Building },
 };
 
+function useAdminRole() {
+  const { user, isUserLoading } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isUserLoading) {
+      setIsLoading(true);
+      return;
+    }
+    if (!user) {
+      setIsAdmin(false);
+      setIsLoading(false);
+      return;
+    }
+
+    user.getIdTokenResult(true) // Force refresh the token to get latest claims
+      .then((idTokenResult: IdTokenResult) => {
+        const claims = idTokenResult.claims;
+        setIsAdmin(claims.role === 'admin');
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setIsAdmin(false);
+        setIsLoading(false);
+      });
+  }, [user, isUserLoading]);
+
+  return { isAdmin, isLoading: isLoading };
+}
+
 export default function DepartureDashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
@@ -63,11 +96,22 @@ export default function DepartureDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const firestore = useFirestore();
+  const { user, isUserLoading, auth } = useUser(true);
+  const {isAdmin, isLoading: isAdminLoading} = useAdminRole();
+  const router = useRouter();
+
   const departuresCol = useMemoFirebase(() => collection(firestore, 'dispatchSchedules'), [firestore]);
-  const { data: departures, isLoading } = useCollection<Departure>(departuresCol);
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCol);
 
   useEffect(() => {
-    if (!departures || isLoading) return;
+      if (!isUserLoading && !user) {
+          router.push('/login');
+      }
+  }, [user, isUserLoading, router])
+
+
+  useEffect(() => {
+    if (!departures || isLoadingDepartures) return;
 
     const interval = setInterval(() => {
       departures.forEach(d => {
@@ -79,7 +123,7 @@ export default function DepartureDashboard() {
     }, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, [departures, firestore, isLoading]);
+  }, [departures, firestore, isLoadingDepartures]);
 
   const handleAddNew = () => {
     setEditingDeparture(null);
@@ -203,11 +247,11 @@ export default function DepartureDashboard() {
           return {
             carrier: row['Carrier'] as Carrier,
             destination: row['Destination'],
-            via: row['Via'] === 'N/A' ? undefined : row['Via'],
+            via: row['Via'] === 'N/A' ? '' : row['Via'],
             trailerNumber: String(row['Trailer']),
             collectionTime: collectionTime.toISOString(),
             bayDoor: Number(row['Bay']),
-            sealNumber: row['Seal No.'] === 'N/A' ? undefined : String(row['Seal No.']),
+            sealNumber: row['Seal No.'] === 'N/A' ? '' : String(row['Seal No.']),
             scheduleNumber: String(row['Schedule No.']),
             status: row['Status'] as Status,
           };
@@ -278,28 +322,55 @@ export default function DepartureDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+      await signOut(auth);
+      router.push('/login');
+  }
+
+  if (isUserLoading || !user) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+  
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      {isAdmin && (
+        <>
+          <DashboardActions 
+              onExport={handleExport}
+              onImportClick={handleImportClick}
+          />
+          <Button size="sm" variant="outline" onClick={seedDatabase}>
+              <Database className="mr-2 h-4 w-4" />
+              Seed
+          </Button>
+        </>
+      )}
+      {user && (
+          <div className='flex items-center gap-2'>
+              <span className='text-sm text-muted-foreground hidden sm:inline'>{user.email}</span>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <LogOut className='mr-2 h-4 w-4'/>
+                  Logout
+              </Button>
+          </div>
+      )}
+    </div>
+  );
+
+
   return (
     <>
-    <Header actions={
-        <div className="flex items-center gap-2">
-            <DashboardActions 
-                onExport={handleExport}
-                onImportClick={handleImportClick}
-            />
-            <Button size="sm" variant="outline" onClick={seedDatabase}>
-                <Database className="mr-2 h-4 w-4" />
-                Seed Database
-            </Button>
-        </div>
-    } />
+    <Header actions={headerActions} />
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>Departures</CardTitle>
-            <Button size="sm" onClick={handleAddNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Departure
-            </Button>
+            {isAdmin && (
+                <Button size="sm" onClick={handleAddNew}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Departure
+                </Button>
+            )}
         </CardHeader>
         <CardContent>
             <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".xlsx, .xls" className="hidden" />
@@ -320,12 +391,12 @@ export default function DepartureDashboard() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {isLoading && (
+                {(isLoadingDepartures || isAdminLoading) && (
                     <TableRow>
                         <TableCell colSpan={10} className="text-center h-24">Loading departures...</TableCell>
                     </TableRow>
                 )}
-                {!isLoading && sortedDepartures.length > 0 ? (
+                {!(isLoadingDepartures || isAdminLoading) && sortedDepartures.length > 0 ? (
                     sortedDepartures.map(d => {
                     const carrierStyle = carrierStyles[d.carrier];
                     const IconComponent = carrierStyle.icon;
@@ -347,20 +418,26 @@ export default function DepartureDashboard() {
                         <TableCell>{d.scheduleNumber}</TableCell>
                         <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
                         <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                            </Button>
+                            {isAdmin ? (
+                                <>
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
+                                    <Edit className="h-4 w-4" />
+                                    <span className="sr-only">Edit</span>
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">Delete</span>
+                                    </Button>
+                                </>
+                            ) : (
+                                <span className="text-xs text-muted-foreground">View Only</span>
+                            )}
                         </TableCell>
                         </TableRow>
                     );
                     })
                 ) : (
-                    !isLoading && <TableRow>
+                    !(isLoadingDepartures || isAdminLoading) && <TableRow>
                     <TableCell colSpan={10} className="text-center">
                         No departures scheduled.
                     </TableCell>
@@ -372,13 +449,13 @@ export default function DepartureDashboard() {
         </CardContent>
         </Card>
     </div>
-      <EditDepartureDialog
+      {isAdmin && <EditDepartureDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         departure={editingDeparture}
         onSave={handleSave}
-      />
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      />}
+      {isAdmin && <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
               <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -392,7 +469,7 @@ export default function DepartureDashboard() {
                   <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog>}
     </>
   );
 }

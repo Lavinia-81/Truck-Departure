@@ -47,6 +47,7 @@ export interface UserHookResult { // Renamed from UserAuthHookResult for consist
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
+  auth: Auth;
 }
 
 // React Context
@@ -170,7 +171,11 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
  * This provides the User object, loading status, and any auth errors.
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
-export const useUser = (): UserHookResult => { // Renamed from useAuthUser
-  const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
+export const useUser = (returnAuthInstance = false): UserHookResult | Omit<UserHookResult, 'auth'> => { // Renamed from useAuthUser
+  const { user, isUserLoading, userError, auth } = useFirebase(); // Leverages the main hook
+  
+  if (returnAuthInstance) {
+    return { user, isUserLoading, userError, auth };
+  }
   return { user, isUserLoading, userError };
 };
