@@ -2,42 +2,29 @@
  * @fileoverview Firestore Security Rules for the dispatch schedule application.
  *
  * Core Philosophy:
- * This ruleset provides open read access to dispatch schedules, while restricting write access
- * to authenticated users (i.e. logged in users).
+ * This ruleset provides open read and write access to dispatch schedules, suitable for a public
+ * kiosk-style application where no authentication is required.
  *
  * Data Structure:
  * The data consists of dispatch schedule documents stored in the `/dispatchSchedules` collection.
  *
  * Key Security Decisions:
- * - Unauthenticated listing is enabled.
- * - Only authenticated users can create, update, or delete dispatch schedules.
- * - No schema enforcement is done in this prototype phase.
+ * - Public read and write access is enabled for the `dispatchSchedules` collection.
+ * - This is insecure for a production app with sensitive data, but acceptable for this
+ *   prototype where the app is intended to be fully public.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants open read access to dispatch schedules, while restricting write access to authenticated users.
+     * @description Grants open read and write access to dispatch schedules.
      * @path /databases/{database}/documents/dispatchSchedules/{dispatchScheduleId}
-     * @allow (get, list): Any user can read dispatch schedules.
-     * @allow (create): Only authenticated users can create dispatch schedules.
-     * @allow (update, delete): Only authenticated users can update or delete dispatch schedules.
-     * @deny   create: If the user is not authenticated.
-     * @deny   update: If the user is not authenticated or the document does not exist.
-     * @deny   delete: If the user is not authenticated or the document does not exist.
-     * @principle Allows public read access while restricting writes to authenticated users.
+     * @allow (read, write): Any user (authenticated or not) can read and write to dispatch schedules.
+     * @principle Allows fully public and anonymous read/write access.
      */
     match /dispatchSchedules/{dispatchScheduleId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    // --- Helper functions ---
-    function isSignedIn() {
-      return request.auth != null;
+      allow read, write: if true;
     }
   }
 }

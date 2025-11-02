@@ -41,7 +41,7 @@ const carrierStyles: Record<Carrier, CarrierStyle> = {
 
 export default function DisplayPage() {
   const firestore = useFirestore();
-  const departuresCol = useMemoFirebase(() => collection(firestore, 'dispatchSchedules'), [firestore]);
+  const departuresCol = useMemoFirebase(() => firestore ? collection(firestore, 'dispatchSchedules') : null, [firestore]);
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCol);
   
   const sortedDepartures = useMemo(() => {

@@ -69,15 +69,7 @@
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ],
-    "customClaims": {
-      "role": {
-        "type": "string",
-        "enum": ["admin", "viewer"]
-      }
-    }
+    "providers": []
   },
   "firestore": {
     "/dispatchSchedules/{dispatchScheduleId}": {

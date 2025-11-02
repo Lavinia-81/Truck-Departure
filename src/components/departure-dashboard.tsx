@@ -67,12 +67,12 @@ export default function DepartureDashboard() {
   
   const firestore = useFirestore();
 
-  const departuresCol = useMemoFirebase(() => collection(firestore, 'dispatchSchedules'), [firestore]);
+  const departuresCol = useMemoFirebase(() => firestore ? collection(firestore, 'dispatchSchedules') : null, [firestore]);
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCol);
 
 
   useEffect(() => {
-    if (!departures || isLoadingDepartures) return;
+    if (!departures || isLoadingDepartures || !firestore) return;
 
     const interval = setInterval(() => {
       departures.forEach(d => {
@@ -103,7 +103,7 @@ export default function DepartureDashboard() {
   };
 
   const confirmDelete = () => {
-    if (deletingDeparture) {
+    if (deletingDeparture && firestore) {
       const departureRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
       deleteDocumentNonBlocking(departureRef);
       toast({
@@ -116,6 +116,7 @@ export default function DepartureDashboard() {
   };
 
   const handleSave = (savedDeparture: Departure) => {
+    if (!departuresCol || !firestore) return;
     const { id, ...departureData } = savedDeparture;
     const isNew = !id;
     
@@ -181,7 +182,7 @@ export default function DepartureDashboard() {
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !departuresCol || !firestore) return;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -262,6 +263,7 @@ export default function DepartureDashboard() {
   }, [departures])
 
   const seedDatabase = async () => {
+    if (!firestore) return;
     try {
         const batch = writeBatch(firestore);
         initialDepartures.forEach(departure => {
@@ -285,6 +287,7 @@ export default function DepartureDashboard() {
   };
 
   const handleClearAll = async () => {
+    if (!departuresCol || !firestore) return;
     try {
         const querySnapshot = await getDocs(departuresCol);
         if (querySnapshot.empty) {
@@ -418,7 +421,7 @@ export default function DepartureDashboard() {
                 ) : (
                     !isLoadingDepartures && <TableRow>
                     <TableCell colSpan={10} className="text-center">
-                        No departures scheduled.
+                        No departures scheduled. Use "Seed" to add initial data or "Add Departure" to create a new one.
                     </TableCell>
                     </TableRow>
                 )}
