@@ -9,7 +9,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Edit, Truck, Package, Anchor, Building, Trash2, PlusCircle, Database } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier, CARRIERS } from '@/lib/types';
-import { initialDepartures } from '@/lib/data';
 import { EditDepartureDialog } from './edit-departure-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -30,10 +29,11 @@ import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, s
 import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
+import { initialDepartures } from '@/lib/data';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
-  Loading: 'bg-yellow-300 text-yellow-900 border-yellow-400 dark:bg-yellow-800/50 dark:text-yellow-200 dark:border-yellow-700',
+  Loading: 'bg-pink-300 text-pink-900 border-pink-400 dark:bg-pink-800/50 dark:text-pink-200 dark:border-pink-700',
   Waiting: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800',
   Cancelled: 'bg-red-500 text-red-900 border-red-600 dark:bg-red-800/50 dark:text-red-200 dark:border-red-700',
   Delayed: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
@@ -351,10 +351,6 @@ export default function DepartureDashboard() {
         <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>Departures</CardTitle>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="destructive" onClick={() => setIsClearDialogOpen(true)}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear All
-              </Button>
               <Button size="sm" onClick={handleAddNew}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add Departure
@@ -432,8 +428,8 @@ export default function DepartureDashboard() {
         </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Legend</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Legend</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -443,6 +439,12 @@ export default function DepartureDashboard() {
                   <span>{status}</span>
                 </div>
               ))}
+              <div className="ml-auto">
+                 <Button size="sm" variant="destructive" onClick={() => setIsClearDialogOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Clear All
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
