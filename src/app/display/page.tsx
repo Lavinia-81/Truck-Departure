@@ -55,8 +55,8 @@ export default function DisplayPage() {
   }, [departures]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-lg md:text-xl">
-      <header className="sticky top-0 z-50 flex flex-col items-center gap-2 border-b bg-background px-4 py-4 md:px-6">
+    <div className="flex flex-col h-screen bg-background text-lg md:text-xl">
+      <header className="flex flex-col items-center gap-2 border-b bg-background px-4 py-4 md:px-6">
         <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
           Truck Departure Board
         </h1>
@@ -64,7 +64,7 @@ export default function DisplayPage() {
           <Clock />
         </div>
       </header>
-      <main className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-y-auto">
         <Card className="flex-1">
           <CardContent className="p-2 md:p-4">
             <div className="relative w-full overflow-auto">
@@ -131,7 +131,7 @@ export default function DisplayPage() {
           </CardContent>
         </Card>
       </main>
-      <footer className="mt-auto border-t bg-background p-4 md:px-6">
+      <footer className="border-t bg-background p-4 md:px-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Legend</CardTitle>
