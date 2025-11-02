@@ -29,6 +29,7 @@ import { DashboardActions } from './dashboard-actions';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { STATUSES } from '@/lib/types';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -429,6 +430,21 @@ export default function DepartureDashboard() {
             </Table>
             </div>
         </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Legend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              {STATUSES.map((status) => (
+                <div key={status} className="flex items-center gap-2">
+                  <div className={cn("h-4 w-4 rounded-full", statusColors[status])}></div>
+                  <span>{status}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
     </div>
       <EditDepartureDialog

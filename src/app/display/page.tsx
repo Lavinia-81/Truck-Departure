@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import Clock from '@/components/clock';
+import { STATUSES } from '@/lib/types';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -128,6 +129,23 @@ export default function DisplayPage() {
           </CardContent>
         </Card>
       </main>
+      <footer className="mt-auto border-t bg-background p-4 md:px-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Legend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              {STATUSES.map((status) => (
+                <div key={status} className="flex items-center gap-2">
+                  <div className={cn("h-4 w-4 rounded-full", statusColors[status])}></div>
+                  <span>{status}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </footer>
     </div>
   );
 }
