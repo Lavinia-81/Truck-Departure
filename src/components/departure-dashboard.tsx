@@ -265,30 +265,6 @@ export default function DepartureDashboard() {
       });
   }, [departures])
 
-  const seedDatabase = async () => {
-    if (!firestore) return;
-    try {
-        const batch = writeBatch(firestore);
-        initialDepartures.forEach(departure => {
-            const {id, ...departureData} = departure;
-            const docRef = doc(firestore, 'dispatchSchedules', id);
-            batch.set(docRef, departureData);
-        });
-        await batch.commit();
-        toast({
-            title: "Database Seeded",
-            description: "Initial departure data has been loaded into Firestore."
-        });
-    } catch (error) {
-        console.error("Error seeding database:", error);
-        toast({
-            variant: "destructive",
-            title: "Seeding Failed",
-            description: "Could not load initial data into Firestore.",
-        });
-    }
-  };
-
   const handleClearAll = async () => {
     if (!departuresCol || !firestore) return;
     try {
@@ -337,10 +313,6 @@ export default function DepartureDashboard() {
           onExport={handleExport}
           onImportClick={handleImportClick}
       />
-      <Button size="sm" variant="outline" onClick={seedDatabase}>
-          <Database className="mr-2 h-4 w-4" />
-          Seed
-      </Button>
     </div>
   );
 
@@ -422,7 +394,7 @@ export default function DepartureDashboard() {
                   ) : (
                     !isLoadingDepartures && <TableRow>
                       <TableCell colSpan={11} className="text-center">
-                        No departures scheduled. Use "Seed" to add initial data or "Add Departure" to create a new one.
+                        No departures scheduled. Use "Add Departure" to create a new one.
                       </TableCell>
                     </TableRow>
                   )}
