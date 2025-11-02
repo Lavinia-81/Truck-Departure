@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Package, Truck, Anchor, Building } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
@@ -171,22 +171,16 @@ export default function DisplayPage() {
           </CardContent>
         </Card>
       </main>
-      <footer className="sticky bottom-0 border-t bg-background p-4 md:px-6 flex-shrink-0">
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Legend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              {STATUSES.map((status) => (
-                <div key={status} className="flex items-center gap-2">
-                  <div className={cn("h-4 w-4 rounded-full", statusColors[status])}></div>
-                  <span>{status}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <footer className="sticky bottom-0 border-t bg-background px-4 py-2 md:px-6 flex-shrink-0">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm md:text-base">
+            <span className="font-semibold text-lg mr-4">Legend:</span>
+            {STATUSES.map((status) => (
+              <div key={status} className="flex items-center gap-2">
+                <div className={cn("h-4 w-4 rounded-full", statusColors[status])}></div>
+                <span>{status}</span>
+              </div>
+            ))}
+          </div>
       </footer>
     </div>
   );
