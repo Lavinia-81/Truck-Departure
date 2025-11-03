@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Truck, Package, Anchor, Building, Trash2, PlusCircle, TrafficCone } from 'lucide-react';
+import { Edit, Truck, Package, Anchor, Building, Trash2, PlusCircle, TrafficCone, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { format, parseISO, addMinutes } from 'date-fns';
 import type { Departure, Status, Carrier, CARRIERS } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -84,7 +84,6 @@ export default function DepartureDashboard() {
     const interval = setInterval(() => {
       const now = new Date();
       departures.forEach(d => {
-        // Check if the departure is in a state that can become delayed
         const canBecomeDelayed = d.status === 'Waiting' || d.status === 'Loading';
         
         if (canBecomeDelayed) {
@@ -93,7 +92,6 @@ export default function DepartureDashboard() {
           
           if (now > delayedTime) {
               const departureRef = doc(firestore, 'dispatchSchedules', d.id);
-              // Use non-blocking update for background status change
               setDocumentNonBlocking(departureRef, { status: 'Delayed' }, { merge: true });
           }
         }
@@ -138,7 +136,7 @@ export default function DepartureDashboard() {
         title: "Error fetching route status",
         description: "Could not retrieve traffic warnings. Please try again."
       })
-      // Keep dialog open but show error, so we need to handle this in the dialog component
+      // The dialog component will show an error state if routeStatus is null
     } finally {
       setIsRouteStatusLoading(false);
     }
@@ -420,7 +418,7 @@ export default function DepartureDashboard() {
                           <TableCell>{d.scheduleNumber}</TableCell>
                           <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleShowRouteStatus(d)}>
+                            <Button variant="ghost" size="icon" onClick={() => handleShowRouteStatus(d)} title="Check Route Status">
                                <TrafficCone className="h-4 w-4 text-orange-400" />
                                <span className="sr-only">Route Status</span>
                             </Button>
@@ -458,6 +456,15 @@ export default function DepartureDashboard() {
                 <span>{status}</span>
               </div>
             ))}
+             <div className="flex items-center gap-2 ml-4">
+                <CheckCircle2 className="h-4 w-4 text-green-500"/><span>Route Clear</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <TrafficCone className="h-4 w-4 text-orange-400"/><span>Moderate Delay</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive"/><span>Severe Delay</span>
+            </div>
             <div className="ml-auto">
               <Button size="sm" variant="destructive" onClick={() => setIsClearDialogOpen(true)}>
                 <Trash2 className="mr-2 h-4 w-4" />

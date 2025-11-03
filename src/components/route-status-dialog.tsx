@@ -4,8 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Separator } from "@/components/ui/separator";
 import type { Departure } from "@/lib/types"
 import type { SuggestOptimizedRouteOutput } from "@/ai/flows/suggest-optimized-route";
-import { Loader2, Route, Clock, Lightbulb, TrafficCone, MapPin } from "lucide-react";
+import { Loader2, Route, Clock, Lightbulb, TrafficCone, MapPin, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 interface RouteStatusDialogProps {
   isOpen: boolean;
@@ -15,10 +16,37 @@ interface RouteStatusDialogProps {
   isLoading: boolean;
 }
 
+const warningLevels = {
+    severe: {
+        icon: AlertTriangle,
+        color: "text-destructive",
+        bgColor: "bg-destructive/10",
+        badge: "destructive",
+        title: "Severe Warnings"
+    },
+    moderate: {
+        icon: TrafficCone,
+        color: "text-orange-400",
+        bgColor: "bg-orange-400/10",
+        badge: "default",
+        title: "Moderate Warnings"
+    },
+    none: {
+        icon: CheckCircle2,
+        color: "text-green-500",
+        bgColor: "bg-green-500/10",
+        badge: "default",
+        title: "Route Clear"
+    }
+} as const;
+
+
 export function RouteStatusDialog({ isOpen, onOpenChange, departure, routeStatus, isLoading }: RouteStatusDialogProps) {
   
-  const hasWarnings = routeStatus?.roadWarnings && !routeStatus.roadWarnings.toLowerCase().includes("no significant warnings");
-  
+  const level = routeStatus?.warningLevel || 'none';
+  const warningConfig = warningLevels[level];
+  const Icon = warningConfig.icon;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
@@ -38,16 +66,20 @@ export function RouteStatusDialog({ isOpen, onOpenChange, departure, routeStatus
             {!isLoading && routeStatus && (
                 <>
                 <div className="flex items-start gap-4">
-                    <div className={`p-2 rounded-full ${hasWarnings ? 'bg-destructive/10' : 'bg-primary/10'}`}>
-                        <TrafficCone className={`h-6 w-6 ${hasWarnings ? 'text-destructive' : 'text-primary'}`} />
+                    <div className={cn("p-2 rounded-full", warningConfig.bgColor)}>
+                        <Icon className={cn("h-6 w-6", warningConfig.color)} />
                     </div>
                     <div>
-                        <p className="font-semibold">Road Warnings</p>
+                        <p className={cn("font-semibold", warningConfig.color)}>{warningConfig.title}</p>
                         <p className="text-muted-foreground">{routeStatus.roadWarnings}</p>
-                        {hasWarnings ? (
+                        {level === 'severe' && (
                             <Badge variant="destructive" className="mt-2">Action may be required</Badge>
-                        ) : (
-                            <Badge className="mt-2 bg-green-600/80 hover:bg-green-700">Route Clear</Badge>
+                        )}
+                         {level === 'moderate' && (
+                            <Badge variant="outline" className="mt-2 border-orange-400 text-orange-400">Caution Advised</Badge>
+                        )}
+                        {level === 'none' && (
+                           <Badge className="mt-2 bg-green-600/80 hover:bg-green-700">Route Clear</Badge>
                         )}
                     </div>
                 </div>
