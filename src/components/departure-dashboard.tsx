@@ -352,14 +352,14 @@ export default function DepartureDashboard() {
         onImport={handleImportClick}
         onExport={handleExport}
       />
-      <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-y-auto">
-        <Card className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
+        <Card className="flex-1 flex flex-col overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>Departures</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
+          <CardContent className="flex-1 flex flex-col overflow-hidden">
             <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".xlsx, .xls" className="hidden" />
-            <div className="relative w-full overflow-auto">
+            <div className="relative w-full overflow-x-auto">
               <Table>
                 <TableHeader className="bg-primary/90">
                   <TableRow className="border-primary/90 hover:bg-primary/90">
