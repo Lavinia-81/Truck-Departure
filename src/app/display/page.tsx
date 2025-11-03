@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Truck, Anchor, Building, Calendar, Clock as ClockIcon, Tag, MapPin, ChevronRight, DoorOpen, Seal } from 'lucide-react';
+import { Package, Truck, Anchor, Building, Calendar, Clock as ClockIcon, Tag, MapPin, ChevronRight, DoorOpen } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -137,7 +137,7 @@ export default function DisplayPage() {
                 <div className="flex items-center"><ClockIcon className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-bold text-base">{format(parseISO(d.collectionTime), 'HH:mm')}</span></div>
                 <div className="flex items-center"><DoorOpen className="h-4 w-4 mr-2 text-muted-foreground" /> Bay <span className="font-bold text-base ml-2">{d.bayDoor}</span></div>
                 <div className="flex items-center"><Tag className="h-4 w-4 mr-2 text-muted-foreground" /> {d.trailerNumber}</div>
-                {d.sealNumber && <div className="flex items-center"><Seal className="h-4 w-4 mr-2 text-muted-foreground" /> {d.sealNumber}</div>}
+                {d.sealNumber && <div className="flex items-center"><Tag className="h-4 w-4 mr-2 text-muted-foreground" /> {d.sealNumber}</div>}
             </div>
           </CardContent>
         </Card>
@@ -241,3 +241,5 @@ export default function DisplayPage() {
     </div>
   );
 }
+
+    
