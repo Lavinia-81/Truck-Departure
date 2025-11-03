@@ -4,8 +4,8 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Package, Truck, Anchor, Building } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Package, Truck, Anchor, Building, Calendar, Clock as ClockIcon, Tag, MapPin, ChevronRight, Bay, Seal } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -48,8 +48,9 @@ export default function DisplayPage() {
   
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
-
+  
   const sortedDepartures = useMemo(() => {
     if (!departures) return [];
     return [...departures].sort((a, b) => {
@@ -60,21 +61,27 @@ export default function DisplayPage() {
   }, [departures]);
   
   useEffect(() => {
-    if (isLoadingDepartures || !tableContainerRef.current || !tableBodyRef.current) {
-        return;
-    }
+    if (isLoadingDepartures) return;
 
     const checkOverflow = () => {
-        const containerHeight = tableContainerRef.current?.clientHeight ?? 0;
-        const contentHeight = tableBodyRef.current?.scrollHeight ?? 0;
-        setIsScrolling(contentHeight > containerHeight);
+        const isMobile = window.innerWidth < 768;
+        const container = isMobile ? mobileContainerRef.current : tableContainerRef.current;
+        const content = isMobile ? container?.firstChild as HTMLElement : tableBodyRef.current;
+        
+        if (container && content) {
+            const containerHeight = container.clientHeight;
+            const contentHeight = content.scrollHeight;
+            setIsScrolling(contentHeight > containerHeight);
+        } else {
+            setIsScrolling(false);
+        }
     };
 
     checkOverflow();
+    const debouncedCheckOverflow = () => setTimeout(checkOverflow, 100);
 
-    // Re-check on window resize
-    window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
+    window.addEventListener('resize', debouncedCheckOverflow);
+    return () => window.removeEventListener('resize', debouncedCheckOverflow);
   }, [sortedDepartures, isLoadingDepartures]);
 
 
@@ -106,9 +113,41 @@ export default function DisplayPage() {
       });
   }
 
+  const renderMobileCards = (departuresToRender: Departure[]) => {
+    return departuresToRender.map(d => {
+      const carrierStyle = carrierStyles[d.carrier];
+      const IconComponent = carrierStyle.icon;
+      return (
+        <Card key={d.id} className={cn("mb-4 border-l-4", statusColors[d.status], `border-${statusColors[d.status].split(' ')[0]}`)}>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <Badge className={cn('flex items-center gap-2 text-base p-2', carrierStyle.className)}>
+                  {IconComponent && <IconComponent className="h-5 w-5" />}
+                  {carrierStyle.iconUrl && <Image src={carrierStyle.iconUrl} alt={`${d.carrier} logo`} width={20} height={20} className="rounded-sm" />}
+                  <span>{d.carrier}</span>
+              </Badge>
+              <Badge variant="outline" className="border-current text-base p-2">{d.status}</Badge>
+            </div>
+            <div className='flex items-center text-lg'>
+                <MapPin className="h-5 w-5 mr-3 text-muted-foreground" />
+                <span className="font-medium">{d.destination}</span>
+                {d.via && <><ChevronRight className="h-5 w-5 mx-2 text-muted-foreground" /> <span className='text-muted-foreground text-base'>{d.via}</span></>}
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="flex items-center"><ClockIcon className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-bold text-base">{format(parseISO(d.collectionTime), 'HH:mm')}</span></div>
+                <div className="flex items-center"><Bay className="h-4 w-4 mr-2 text-muted-foreground" /> Bay <span className="font-bold text-base ml-2">{d.bayDoor}</span></div>
+                <div className="flex items-center"><Tag className="h-4 w-4 mr-2 text-muted-foreground" /> {d.trailerNumber}</div>
+                {d.sealNumber && <div className="flex items-center"><Seal className="h-4 w-4 mr-2 text-muted-foreground" /> {d.sealNumber}</div>}
+            </div>
+          </CardContent>
+        </Card>
+      )
+    });
+  };
+
   const animationDuration = useMemo(() => {
-    // Adjust speed based on number of rows. ~20 seconds per row for slower animation.
-    return sortedDepartures.length * 20;
+    // Adjust speed based on number of rows. ~15 seconds per item.
+    return sortedDepartures.length * 15;
   }, [sortedDepartures.length]);
 
 
@@ -122,8 +161,9 @@ export default function DisplayPage() {
           <Clock />
         </div>
       </header>
-      <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
-        <Card className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col space-y-4 p-2 md:p-8 pt-6 overflow-hidden">
+        {/* Desktop View (Table) */}
+        <Card className="hidden md:flex flex-1 flex-col overflow-hidden">
           <CardContent className="p-2 md:p-4 flex-1 flex flex-col overflow-hidden">
             <div className="relative w-full overflow-hidden flex-1" ref={tableContainerRef}>
               <Table>
@@ -143,26 +183,23 @@ export default function DisplayPage() {
                     className={cn("text-base md:text-lg", { 'scrolling-content': isScrolling })}
                     style={{ animationDuration: isScrolling ? `${animationDuration}s` : undefined }}
                   >
-                    {isLoadingDepartures && (
+                    {isLoadingDepartures ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center h-48 text-2xl">
                           Loading Departures...
                         </TableCell>
                       </TableRow>
-                    )}
-                    {!isLoadingDepartures && sortedDepartures.length > 0 ? (
+                    ) : sortedDepartures.length > 0 ? (
                       <>
                        {renderTableRows(sortedDepartures)}
                        {isScrolling && renderTableRows(sortedDepartures)}
                       </>
                     ) : (
-                      !isLoadingDepartures && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center h-48 text-2xl">
-                            No Departures Scheduled
-                          </TableCell>
-                        </TableRow>
-                      )
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center h-48 text-2xl">
+                          No Departures Scheduled
+                        </TableCell>
+                      </TableRow>
                     )}
                   </TableBody>
               </Table>
@@ -170,13 +207,32 @@ export default function DisplayPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Mobile View (Cards) */}
+        <div ref={mobileContainerRef} className="md:hidden flex-1 overflow-y-auto space-y-4 relative">
+          <div 
+            className={cn({ 'scrolling-content': isScrolling })}
+            style={{ animationDuration: isScrolling ? `${animationDuration}s` : undefined }}>
+            {isLoadingDepartures ? (
+              <p className="text-center text-muted-foreground p-8">Loading Departures...</p>
+            ) : sortedDepartures.length > 0 ? (
+              <>
+                {renderMobileCards(sortedDepartures)}
+                {isScrolling && renderMobileCards(sortedDepartures)}
+              </>
+            ) : (
+              <p className="text-center text-muted-foreground p-8">No Departures Scheduled</p>
+            )}
+          </div>
+           <div className={cn("absolute inset-0 w-full h-full pointer-events-none", { 'scrolling-container': isScrolling })}></div>
+        </div>
       </main>
       <footer className="sticky bottom-0 border-t bg-background px-4 py-2 md:px-6 flex-shrink-0">
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm md:text-base">
-            <span className="font-semibold text-lg mr-4">Legend:</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm md:text-base">
+            <span className="font-semibold text-base md:text-lg mr-2 md:mr-4">Legend:</span>
             {STATUSES.map((status) => (
               <div key={status} className="flex items-center gap-2">
-                <div className={cn("h-4 w-4 rounded-full", statusColors[status])}></div>
+                <div className={cn("h-3 w-3 md:h-4 md:w-4 rounded-full", statusColors[status])}></div>
                 <span>{status}</span>
               </div>
             ))}
