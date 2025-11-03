@@ -38,6 +38,10 @@ const carrierStyles: Record<string, CarrierStyle> = {
   },
   'McBurney': { className: 'bg-purple-500 hover:bg-purple-600 text-white border-purple-600', icon: Anchor },
   'Montgomery': { className: 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600', icon: Building },
+  'The Very Group': {
+    className: 'bg-black hover:bg-neutral-800 text-white border-neutral-700',
+    iconUrl: 'https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png'
+  }
 };
 
 
@@ -153,13 +157,17 @@ export default function DisplayPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-lg md:text-xl">
-      <header className="flex flex-col items-center gap-4 border-b bg-background px-4 py-4 md:px-6 flex-shrink-0">
-        <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={120} height={46} className="h-auto" />
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
-          Truck Departure Board
-        </h1>
-        <div className="text-xl md:text-2xl">
-          <Clock />
+      <header className="flex items-center justify-between gap-4 border-b bg-background px-4 py-3 md:px-6 flex-shrink-0">
+        <div className="bg-white p-2 rounded-md shadow-sm">
+         <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={120} height={46} className="h-auto" />
+        </div>
+        <div className="flex flex-col items-end">
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
+              Truck Departure Board
+            </h1>
+            <div className="text-xl md:text-2xl">
+              <Clock />
+            </div>
         </div>
       </header>
       <main className="flex-1 flex flex-col space-y-4 p-2 md:p-8 pt-6 overflow-hidden">
