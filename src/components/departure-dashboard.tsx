@@ -357,7 +357,7 @@ export default function DepartureDashboard() {
           <CardHeader className="flex flex-row items-center justify-between gap-2 md:gap-4">
             <CardTitle>Departures</CardTitle>
             <div className="bg-white p-1.5 rounded-md shadow-sm">
-                <div className="w-[80px] md:w-[150px] h-auto">
+                <div className="w-[70px] md:w-[120px] h-auto">
                     <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={150} height={58} className="h-auto w-full" />
                 </div>
             </div>
