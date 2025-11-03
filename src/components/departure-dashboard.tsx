@@ -354,21 +354,22 @@ export default function DepartureDashboard() {
       />
       <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
         <Card className="flex-1 flex flex-col overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <CardTitle>Departures</CardTitle>
-              <div className="bg-white p-1.5 rounded-md shadow-sm">
-                <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={100} height={38} className="h-auto" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 md:gap-4">
+            <CardTitle>Departures</CardTitle>
+            <div className="bg-white p-1.5 rounded-md shadow-sm">
+                <div className="w-[80px] md:w-[150px]">
+                    <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={150} height={58} className="h-auto w-full" />
+                </div>
             </div>
-            <Button size="sm" onClick={handleAddNew}>
+            <Button size="sm" onClick={handleAddNew} className="ml-auto">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Add Departure
+                <span className="hidden md:inline">Add Departure</span>
+                <span className="md:hidden">Add</span>
             </Button>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-auto">
+          <CardContent className="flex-1 flex flex-col overflow-hidden">
             <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".xlsx, .xls" className="hidden" />
-            <div className="relative w-full overflow-x-auto">
+            <div className="relative w-full overflow-auto">
               <Table>
                 <TableHeader className="bg-primary/90">
                   <TableRow className="border-primary/90 hover:bg-primary/90">
@@ -432,7 +433,7 @@ export default function DepartureDashboard() {
                     })
                   ) : (
                     !isLoadingDepartures && <TableRow>
-                      <TableCell colSpan={11} className="text-center">
+                      <TableCell colSpan={11} className="text-center h-24">
                         No departures scheduled. Use "Add Departure" to create a new one.
                       </TableCell>
                     </TableRow>
