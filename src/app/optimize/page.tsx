@@ -30,7 +30,7 @@ export default function RouteOptimizerPage() {
   const form = useForm<OptimizerFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      currentLocation: "Sky Gate",
+      currentLocation: "Sky Gate Derby DE74 2BB",
       destination: "",
       via: "",
       trafficData: "Normal traffic conditions",
@@ -62,7 +62,7 @@ export default function RouteOptimizerPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField control={form.control} name="currentLocation" render={({ field }) => (<FormItem><FormLabel>Current Location</FormLabel><FormControl><Input placeholder="e.g., Sky Gate" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="currentLocation" render={({ field }) => (<FormItem><FormLabel>Current Location</FormLabel><FormControl><Input placeholder="e.g., Sky Gate Derby DE74 2BB" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="destination" render={({ field }) => (<FormItem><FormLabel>Final Destination</FormLabel><FormControl><Input placeholder="e.g., Central London" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="via" render={({ field }) => (<FormItem><FormLabel>First Stop (Via)</FormLabel><FormControl><Input placeholder="e.g., Birmingham (optional)" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="trafficData" render={({ field }) => (<FormItem><FormLabel>Traffic Data</FormLabel><FormControl><Textarea placeholder="Provide any known traffic issues (optional)" {...field} /></FormControl><FormMessage /></FormItem>)} />

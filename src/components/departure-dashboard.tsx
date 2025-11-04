@@ -126,7 +126,7 @@ export default function DepartureDashboard() {
     setRouteStatus(null);
     try {
       const result = await suggestOptimizedRoute({
-        currentLocation: "Sky Gate",
+        currentLocation: "Sky Gate Derby DE74 2BB",
         destination: departure.destination,
         via: departure.via,
         trafficData: "Assume current conditions",
