@@ -68,7 +68,7 @@ export default function Header({ onImport, onExport, onAddNew }: HeaderProps) {
         <Clock />
       </div>
 
-      <div className="hidden items-center gap-2 ml-auto md:flex">
+      <div className="hidden items-center gap-4 ml-auto md:flex">
         <Button size="sm" variant="outline" onClick={onImport} className="bg-background/80 shadow-sm">
             <FileUp className="mr-2 h-4 w-4" />
             Import
@@ -77,7 +77,6 @@ export default function Header({ onImport, onExport, onAddNew }: HeaderProps) {
             <FileDown className="mr-2 h-4 w-4" />
             Export
         </Button>
-        <Separator orientation="vertical" className="h-6 mx-2" />
         <Button variant="outline" size="sm" asChild className="bg-background/80 shadow-sm">
           <Link href="/display" target="_blank">
             <Monitor className="mr-2 h-4 w-4" />
