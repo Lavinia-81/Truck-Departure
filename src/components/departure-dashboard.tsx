@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import Header from './header';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { STATUSES, CARRIERS } from '@/lib/types';
 import { RouteStatusDialog } from './route-status-dialog';
@@ -73,8 +73,12 @@ export default function DepartureDashboard() {
   
   const firestore = useFirestore();
 
-  const departuresCol = useMemoFirebase(() => firestore ? collection(firestore, 'dispatchSchedules') : null, [firestore]);
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCol);
+  const departuresQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc'));
+  }, [firestore]);
+
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
 
 
   useEffect(() => {
@@ -155,9 +159,10 @@ export default function DepartureDashboard() {
   };
 
   const handleSave = (savedDeparture: Departure) => {
-    if (!departuresCol || !firestore) return;
+    if (!firestore) return;
     const { id, ...departureData } = savedDeparture;
     const isNew = !id;
+    const departuresCol = collection(firestore, 'dispatchSchedules');
     
     if (isNew) {
         addDocumentNonBlocking(departuresCol, departureData);
@@ -222,7 +227,8 @@ export default function DepartureDashboard() {
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !departuresCol || !firestore) return;
+    if (!file || !firestore) return;
+    const departuresCol = collection(firestore, 'dispatchSchedules');
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -294,17 +300,9 @@ export default function DepartureDashboard() {
     if(event.target) event.target.value = '';
   };
   
-  const sortedDepartures = useMemo(() => {
-      if (!departures) return [];
-      return [...departures].sort((a, b) => {
-        const aTime = new Date(a.collectionTime).getTime();
-        const bTime = new Date(b.collectionTime).getTime();
-        return aTime - bTime;
-      });
-  }, [departures])
-
   const handleClearAll = async () => {
-    if (!departuresCol || !firestore) return;
+    if (!firestore) return;
+    const departuresCol = collection(firestore, 'dispatchSchedules');
     try {
         const querySnapshot = await getDocs(departuresCol);
         if (querySnapshot.empty) {
@@ -392,8 +390,8 @@ export default function DepartureDashboard() {
                       <TableCell colSpan={11} className="text-center h-24">Loading departures...</TableCell>
                     </TableRow>
                   )}
-                  {!isLoadingDepartures && sortedDepartures.length > 0 ? (
-                    sortedDepartures.map(d => {
+                  {!isLoadingDepartures && departures && departures.length > 0 ? (
+                    departures.map(d => {
                       const carrierStyle = carrierStyles[d.carrier];
                       const IconComponent = carrierStyle?.icon;
                       return (

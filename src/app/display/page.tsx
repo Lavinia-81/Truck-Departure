@@ -10,7 +10,7 @@ import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import Clock from '@/components/clock';
 import { STATUSES } from '@/lib/types';
 import './scrolling-animation.css';
@@ -43,22 +43,16 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DisplayPage() {
   const firestore = useFirestore();
-  const departuresCol = useMemoFirebase(() => firestore ? collection(firestore, 'dispatchSchedules') : null, [firestore]);
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCol);
+  const departuresQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc'));
+  }, [firestore]);
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
   
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
-  
-  const sortedDepartures = useMemo(() => {
-    if (!departures) return [];
-    return [...departures].sort((a, b) => {
-      const aTime = new Date(a.collectionTime).getTime();
-      const bTime = new Date(b.collectionTime).getTime();
-      return aTime - bTime;
-    });
-  }, [departures]);
   
   useEffect(() => {
     if (isLoadingDepartures) return;
@@ -82,7 +76,7 @@ export default function DisplayPage() {
 
     window.addEventListener('resize', debouncedCheckOverflow);
     return () => window.removeEventListener('resize', debouncedCheckOverflow);
-  }, [sortedDepartures, isLoadingDepartures]);
+  }, [departures, isLoadingDepartures]);
 
 
   const renderTableRows = (departuresToRender: Departure[]) => {
@@ -147,8 +141,9 @@ export default function DisplayPage() {
 
   const animationDuration = useMemo(() => {
     // Adjust speed based on number of rows. ~15 seconds per item.
-    return sortedDepartures.length * 15;
-  }, [sortedDepartures.length]);
+    if (!departures) return 0;
+    return departures.length * 15;
+  }, [departures]);
 
 
   return (
@@ -196,10 +191,10 @@ export default function DisplayPage() {
                           Loading Departures...
                         </TableCell>
                       </TableRow>
-                    ) : sortedDepartures.length > 0 ? (
+                    ) : departures && departures.length > 0 ? (
                       <>
-                       {renderTableRows(sortedDepartures)}
-                       {isScrolling && renderTableRows(sortedDepartures)}
+                       {renderTableRows(departures)}
+                       {isScrolling && renderTableRows(departures)}
                       </>
                     ) : (
                       <TableRow>
@@ -222,10 +217,10 @@ export default function DisplayPage() {
             style={{ animationDuration: isScrolling ? `${animationDuration}s` : undefined }}>
             {isLoadingDepartures ? (
               <p className="text-center text-muted-foreground p-8">Loading Departures...</p>
-            ) : sortedDepartures.length > 0 ? (
+            ) : departures && departures.length > 0 ? (
               <>
-                {renderMobileCards(sortedDepartures)}
-                {isScrolling && renderMobileCards(sortedDepartures)}
+                {renderMobileCards(departures)}
+                {isScrolling && renderMobileCards(departures)}
               </>
             ) : (
               <p className="text-center text-muted-foreground p-8">No Departures Scheduled</p>
