@@ -28,6 +28,7 @@ import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, s
 import { collection, doc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { STATUSES, CARRIERS } from '@/lib/types';
+import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
@@ -530,5 +531,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    
