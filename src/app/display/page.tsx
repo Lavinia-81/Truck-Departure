@@ -33,12 +33,8 @@ interface CarrierStyle {
 const carrierStyles: Record<string, CarrierStyle> = {
   'Royal Mail': { className: 'bg-red-500 hover:bg-red-600 text-white border-red-600', icon: <Package className="h-5 w-5" /> },
   'EVRI': { 
-    className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600', 
-    icon: (
-      <div className="bg-white rounded-full p-1">
-        <Building className="h-5 w-5 text-sky-500" />
-      </div>
-    )
+    className: 'bg-blue-800 hover:bg-blue-900 text-white border-blue-900', 
+    icon: <Truck className="h-5 w-5" />
   },
   'The Very Group': {
     className: 'bg-black hover:bg-gray-800 text-white border-gray-800',
@@ -57,7 +53,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
     className: 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600', 
     icon: (
       <div className="bg-red-600 rounded-full p-1">
-        <Anchor className="h-5 w-5 text-white" />
+        <Truck className="h-5 w-5 text-white" />
       </div>
     )
   },

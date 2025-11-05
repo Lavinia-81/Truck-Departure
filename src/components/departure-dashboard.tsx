@@ -50,13 +50,9 @@ interface CarrierStyle {
 const carrierStyles: Record<string, CarrierStyle> = {
     'Royal Mail': { className: 'bg-red-500 hover:bg-red-600 text-white border-red-600', icon: <Package className="h-4 w-4" /> },
     'EVRI': { 
-      className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600', 
-      icon: (
-        <div className="bg-white rounded-full p-0.5">
-          <Building className="h-4 w-4 text-sky-500" />
-        </div>
-      )
-    },
+        className: 'bg-blue-800 hover:bg-blue-900 text-white border-blue-900', 
+        icon: <Truck className="h-4 w-4" />
+      },
     'The Very Group': {
       className: 'bg-black hover:bg-gray-800 text-white border-gray-800',
       iconUrl: 'https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png',
@@ -74,7 +70,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
         className: 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600', 
         icon: (
             <div className="bg-red-600 rounded-full p-0.5">
-                <Anchor className="h-4 w-4 text-white" />
+                <Truck className="h-4 w-4 text-white" />
             </div>
         )
     },
