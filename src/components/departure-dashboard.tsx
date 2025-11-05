@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Caravan, Truck, Package, Anchor, Building, Trash2, TrafficCone, AlertTriangle, CheckCircle2, PlusCircle, Ship } from 'lucide-react';
+import { Edit, Caravan, Truck, Package, Anchor, Building, Trash2, TrafficCone, AlertTriangle, CheckCircle2, PlusCircle, Ship, Route } from 'lucide-react';
 import { format, parseISO, addMinutes } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -60,7 +60,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
     },
     'Yodel': {
         className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
-        icon: <Caravan className="h-4 w-4" />
+        icon: <Route className="h-4 w-4" />
     },
     'McBurney': { 
         className: 'bg-[#f1a10d] hover:bg-[#d98e0b] text-white border-[#d98e0b]', 

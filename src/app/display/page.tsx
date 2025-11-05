@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Caravan, Truck, Anchor, Building, Calendar, Clock as ClockIcon, Tag, MapPin, ChevronRight, DoorOpen, Ship } from 'lucide-react';
+import { Package, Caravan, Truck, Anchor, Building, Calendar, Clock as ClockIcon, Tag, MapPin, ChevronRight, DoorOpen, Ship, Route } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status, Carrier } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -43,7 +43,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
   },
   'Yodel': {
     className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
-    icon: <Caravan className="h-5 w-5" />
+    icon: <Route className="h-5 w-5" />
   },
   'McBurney': { 
     className: 'bg-[#f1a10d] hover:bg-[#d98e0b] text-white border-[#d98e0b]', 
