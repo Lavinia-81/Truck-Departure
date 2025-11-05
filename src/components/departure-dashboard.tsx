@@ -49,10 +49,10 @@ interface CarrierStyle {
 
 const carrierStyles: Record<string, CarrierStyle> = {
     'Royal Mail': { className: 'bg-red-500 hover:bg-red-600 text-white border-red-600', icon: <Package className="h-4 w-4" /> },
-    'EVRI': { 
-        className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600', 
-        icon: <Truck className="h-4 w-4 -scale-x-100" />
-      },
+    'EVRI': {
+      className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600',
+      icon: <Truck className="h-4 w-4 -scale-x-100" />
+    },
     'The Very Group': {
       className: 'bg-black hover:bg-gray-800 text-white border-gray-800',
       iconUrl: 'https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png',
@@ -62,12 +62,12 @@ const carrierStyles: Record<string, CarrierStyle> = {
         className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
         icon: <Truck className="h-4 w-4" />
     },
-    'McBurney': { 
-        className: 'bg-[#f1a10d] hover:bg-[#d98e0b] text-white border-[#d98e0b]', 
+    'McBurney': {
+        className: 'bg-[#f1a10d] hover:bg-[#d98e0b] text-white border-[#d98e0b]',
         icon: <Ship className="h-4 w-4" />
     },
-    'Montgomery': { 
-        className: 'bg-[#A5350D] hover:bg-[#8A2C0A] text-white border-[#8A2C0A]', 
+    'Montgomery': {
+        className: 'bg-[#A5350D] hover:bg-[#8A2C0A] text-white border-[#8A2C0A]',
         icon: <Route className="h-4 w-4" />
     },
 };
@@ -103,16 +103,22 @@ export default function DepartureDashboard() {
     const interval = setInterval(() => {
       const now = new Date();
       departures.forEach(d => {
-        const canBecomeDelayed = d.status === 'Waiting' || d.status === 'Loading';
-        
-        if (canBecomeDelayed) {
-          const collectionTime = new Date(d.collectionTime);
-          const delayedTime = addMinutes(collectionTime, 10);
-          
-          if (now > delayedTime && d.status !== 'Delayed') {
-              const departureRef = doc(firestore, 'dispatchSchedules', d.id);
-              setDocumentNonBlocking(departureRef, { status: 'Delayed' }, { merge: true });
-          }
+        if (d.status === 'Departed' || d.status === 'Cancelled' || d.status === 'Delayed') {
+            return;
+        }
+
+        const collectionTime = new Date(d.collectionTime);
+        let shouldBeDelayed = false;
+
+        if (d.status === 'Loading' && now > collectionTime) {
+            shouldBeDelayed = true;
+        } else if (d.status === 'Waiting' && now > addMinutes(collectionTime, 10)) {
+            shouldBeDelayed = true;
+        }
+
+        if (shouldBeDelayed) {
+            const departureRef = doc(firestore, 'dispatchSchedules', d.id);
+            setDocumentNonBlocking(departureRef, { status: 'Delayed' }, { merge: true });
         }
       });
     }, 60000); // Check every minute
