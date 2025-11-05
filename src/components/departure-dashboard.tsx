@@ -67,12 +67,8 @@ const carrierStyles: Record<string, CarrierStyle> = {
         icon: <Truck className="h-4 w-4" />
     },
     'McBurney': { 
-        className: 'bg-purple-500 hover:bg-purple-600 text-white border-purple-600', 
-        icon: (
-          <div className="bg-yellow-400 rounded-full p-0.5">
-              <Caravan className="h-4 w-4 text-black" />
-          </div>
-        )
+        className: 'bg-[#f1a10d] hover:bg-[#d98e0b] text-white border-[#d98e0b]', 
+        icon: <Anchor className="h-4 w-4" />
     },
     'Montgomery': { 
         className: 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600', 
