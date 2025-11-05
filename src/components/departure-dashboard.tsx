@@ -67,7 +67,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
         icon: <Ship className="h-4 w-4" />
     },
     'Montgomery': { 
-        className: 'bg-[#DF5D20] hover:bg-[#c8541d] text-white border-[#c8541d]', 
+        className: 'bg-[#A5350D] hover:bg-[#8A2C0A] text-white border-[#8A2C0A]', 
         icon: <Route className="h-4 w-4" />
     },
 };
