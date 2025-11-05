@@ -47,9 +47,9 @@ export default function RouteOptimizerPage() {
     } catch (e: any) {
       console.error(e);
       if (e.message && e.message.includes('429')) {
-        setError("Too many requests. Please wait a minute and try again.");
+        setError("Ați atins limita de cereri API. Vă rugăm să așteptați un minut înainte de a încerca din nou sau verificați configurația cheii API în Vercel.");
       } else {
-        setError("Failed to get route optimization. Please try again.");
+        setError("Optimizarea rutei a eșuat. Asigurați-vă că ați configurat cheia GEMINI_API_KEY în setările de mediu (Environment Variables) din Vercel și încercați din nou.");
       }
     } finally {
       setIsLoading(false);
