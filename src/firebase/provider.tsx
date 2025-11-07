@@ -4,7 +4,6 @@ import React, { DependencyList, createContext, useContext, ReactNode, useMemo } 
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth } from 'firebase/auth'; 
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export interface FirebaseContextState {
   firebaseApp: FirebaseApp | null;
@@ -38,7 +37,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   return (
     <FirebaseContext.Provider value={contextValue}>
-      <FirebaseErrorListener />
       {children}
     </FirebaseContext.Provider>
   );
@@ -79,5 +77,3 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   
   return memoized as T;
 }
-
-    
