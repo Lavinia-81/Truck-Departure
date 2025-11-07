@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
-  display: 'swap',
 });
 
 export default function RootLayout({
@@ -23,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("dark", inter.variable)}>
-      <body className={cn("font-body antialiased", "bg-background font-body antialiased")}>
+      <body className={"font-body antialiased"}>
         <FirebaseClientProvider>
           <div className="flex min-h-screen w-full flex-col">
             <main className="flex flex-1 flex-col">
