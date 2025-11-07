@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User } from 'firebase/auth'; // Removed onAuthStateChanged since we are not using auth
+import { Auth, User } from 'firebase/auth'; 
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 
@@ -12,12 +12,14 @@ export interface FirebaseContextState {
   areServicesAvailable: boolean; // True if core services (app, firestore, auth instance) are provided
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
+  auth: Auth | null;
 }
 
 // Return type for useFirebase()
 export interface FirebaseServices {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
+  auth: Auth;
 }
 
 // React Context
@@ -43,13 +45,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
-    const servicesAvailable = !!(firebaseApp && firestore);
+    const servicesAvailable = !!(firebaseApp && firestore && auth);
     return {
       areServicesAvailable: servicesAvailable,
       firebaseApp: servicesAvailable ? firebaseApp : null,
       firestore: servicesAvailable ? firestore : null,
+      auth: servicesAvailable ? auth : null,
     };
-  }, [firebaseApp, firestore]);
+  }, [firebaseApp, firestore, auth]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -70,13 +73,14 @@ export const useFirebase = (): FirebaseServices => {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
 
-  if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore) {
+  if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
     throw new Error('Firebase core services not available. Check FirebaseProvider props.');
   }
 
   return {
     firebaseApp: context.firebaseApp,
     firestore: context.firestore,
+    auth: context.auth,
   };
 };
 
@@ -91,6 +95,12 @@ export const useFirebaseApp = (): FirebaseApp => {
   const { firebaseApp } = useFirebase();
   return firebaseApp;
 };
+
+/** Hook to access Firebase Auth instance. */
+export const useAuth = (): Auth => {
+  const { auth } = useFirebase();
+  return auth;
+}
 
 type MemoFirebase <T> = T & {__memo?: boolean};
 
