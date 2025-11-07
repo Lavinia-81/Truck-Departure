@@ -5,6 +5,8 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'marcommnews.com',
+        port: '',
+        pathname: '/wp-content/uploads/**',
       },
     ],
   },

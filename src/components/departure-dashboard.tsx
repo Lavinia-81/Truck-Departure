@@ -594,7 +594,7 @@ export default function DepartureDashboard() {
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete all departure data from the database.
               </AlertDialogDescription>
-            </AlertDialogHeader>
+            </header>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">Yes, delete everything</AlertDialogAction>
