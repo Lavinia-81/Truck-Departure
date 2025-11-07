@@ -1,39 +1,52 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  DependencyList,
+} from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth } from 'firebase/auth'; 
+import { Auth } from 'firebase/auth';
 
+// Define the shape of the context state
 export interface FirebaseContextState {
-  firebaseApp: FirebaseApp | null;
+  app: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
 }
 
-export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
+// Create the context with an undefined initial value
+export const FirebaseContext = createContext<FirebaseContextState | undefined>(
+  undefined
+);
 
+// Define the props for the provider component
 interface FirebaseProviderProps {
   children: ReactNode;
-  firebaseApp: FirebaseApp;
+  app: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
 }
 
+// The provider component
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
-  firebaseApp,
+  app,
   firestore,
   auth,
 }) => {
-  
-  const contextValue = useMemo((): FirebaseContextState => {
-    return {
-      firebaseApp: firebaseApp,
-      firestore: firestore,
-      auth: auth,
-    };
-  }, [firebaseApp, firestore, auth]);
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      app,
+      firestore,
+      auth,
+    }),
+    [app, firestore, auth]
+  );
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -42,38 +55,26 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   );
 };
 
-export const useFirebaseApp = (): FirebaseApp | null => {
-  const context = useContext(FirebaseContext);
-   if (context === undefined) {
-    throw new Error('useFirebaseApp must be used within a FirebaseProvider.');
-  }
-  return context.firebaseApp;
-};
-
-export const useFirestore = (): Firestore | null => {
+// Custom hook to access the full context
+export const useFirebase = (): FirebaseContextState => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
-    throw new Error('useFirestore must be used within a FirebaseProvider.');
+    throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
-  return context.firestore;
+  return context;
 };
 
+// Custom hook to access the Firebase App instance
+export const useFirebaseApp = (): FirebaseApp | null => {
+  return useFirebase().app;
+};
+
+// Custom hook to access the Firestore instance
+export const useFirestore = (): Firestore | null => {
+  return useFirebase().firestore;
+};
+
+// Custom hook to access the Auth instance
 export const useAuth = (): Auth | null => {
-  const context = useContext(FirebaseContext);
-   if (context === undefined) {
-    throw new Error('useAuth must be used within a FirebaseProvider.');
-  }
-  return context.auth;
-}
-
-type MemoFirebase <T> = T & {__memo?: boolean};
-
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
-  
-  return memoized as T;
-}
+  return useFirebase().auth;
+};

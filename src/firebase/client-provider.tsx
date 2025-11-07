@@ -8,14 +8,16 @@ interface FirebaseClientProviderProps {
   children: ReactNode;
 }
 
-export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
+export function FirebaseClientProvider({
+  children,
+}: FirebaseClientProviderProps) {
   const firebaseServices = useMemo(() => {
     return initializeFirebase();
   }, []);
 
   return (
     <FirebaseProvider
-      firebaseApp={firebaseServices.app}
+      app={firebaseServices.app}
       auth={firebaseServices.auth}
       firestore={firebaseServices.firestore}
     >

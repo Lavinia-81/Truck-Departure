@@ -3,54 +3,77 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore, setDoc, addDoc, deleteDoc, CollectionReference, DocumentReference, SetOptions } from 'firebase/firestore';
+import {
+  getFirestore,
+  Firestore,
+  setDoc,
+  addDoc,
+  deleteDoc,
+  CollectionReference,
+  DocumentReference,
+  SetOptions,
+} from 'firebase/firestore';
+import { useMemo, type DependencyList } from 'react';
 
-interface FirebaseSdks {
+// SECTION: Firebase Initialization
+
+interface FirebaseServices {
   app: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
 }
 
-let firebaseServices: FirebaseSdks | null = null;
-export function initializeFirebase(): FirebaseSdks {
+let firebaseServices: FirebaseServices | null = null;
+
+export function initializeFirebase(): FirebaseServices {
   if (firebaseServices) {
     return firebaseServices;
   }
 
   const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  const firestore = getFirestore(app);
   const auth = getAuth(app);
-  
-  firebaseServices = {
-    app: app,
-    auth,
-    firestore,
-  };
+  const firestore = getFirestore(app);
+
+  firebaseServices = { app, auth, firestore };
   return firebaseServices;
 }
 
-export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
-  const operation = options && 'merge' in options ? 'update' : 'create';
+// SECTION: Non-blocking Firestore writes
+
+export function setDocumentNonBlocking(
+  docRef: DocumentReference,
+  data: any,
+  options?: SetOptions
+) {
   setDoc(docRef, data, options || {}).catch(error => {
-    console.error("Firestore Error:", error);
-  })
+    console.error('Firestore Error (setDoc):', error);
+  });
 }
 
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
-  const promise = addDoc(colRef, data)
-    .catch(error => {
-        console.error("Firestore Error:", error);
-    });
-  return promise;
+  addDoc(colRef, data).catch(error => {
+    console.error('Firestore Error (addDoc):', error);
+  });
 }
 
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
-  deleteDoc(docRef)
-    .catch(error => {
-        console.error("Firestore Error:", error);
-    });
+  deleteDoc(docRef).catch(error => {
+    console.error('Firestore Error (deleteDoc):', error);
+  });
 }
 
+// SECTION: Memoization Hook
+
+export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(factory, deps);
+}
+
+// SECTION: Type Utilities
+export type WithId<T> = T & { id: string };
+
+
+// SECTION: Barrel Exports for Firebase services
 
 export * from './provider';
 export * from './client-provider';

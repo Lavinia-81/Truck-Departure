@@ -159,6 +159,8 @@ export default function DepartureDashboard() {
       let description = "Could not retrieve traffic warnings. Please try again.";
       if (e.message && e.message.includes('429')) {
         description = "Ați atins limita de cereri API. Vă rugăm să așteptați un minut înainte de a încerca din nou.";
+      } else if (e.message && e.message.includes('API key not valid')) {
+        description = "Cheia API pentru serviciul AI nu este validă sau nu a fost configurată. Verificați variabila de mediu GEMINI_API_KEY.";
       }
       toast({
         variant: "destructive",
