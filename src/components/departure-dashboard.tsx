@@ -56,7 +56,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
     'The Very Group': {
       className: 'bg-black hover:bg-gray-800 text-white border-gray-800',
       iconUrl: 'https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png',
-      logoClassName: 'bg-white p-1 rounded-sm'
+      logoClassName: 'bg-white p-0.5 rounded-sm'
     },
     'Yodel': {
         className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
@@ -181,7 +181,9 @@ export default function DepartureDashboard() {
       console.error(e);
       let description = "Could not retrieve traffic warnings. Please try again.";
       if (e.message && e.message.includes('429')) {
-        description = "Ați atins limita de cereri API. Vă rugăm să așteptați un minut înainte de a încerca din nou.";
+        description = "You have reached the API request limit. Please wait one minute before trying again."
+        
+        ;
       } else if (e.message && e.message.includes('API key not valid')) {
         description = "Cheia API pentru serviciul AI nu este validă sau nu a fost configurată. Verificați variabila de mediu GEMINI_API_KEY.";
       }
@@ -237,10 +239,17 @@ export default function DepartureDashboard() {
               });
           }
           await setDoc(doc(db, 'dispatchSchedules', id), departureData, { merge: true });
-          toast({
-              title: "Departure Updated",
-              description: `The departure for ${savedDeparture.carrier} has been updated.`
-          });
+          if (originalDeparture?.status !== savedDeparture.status) {
+            toast({
+                title: "Status Updated",
+                description: `Departure for ${savedDeparture.carrier} is now ${savedDeparture.status}.`
+            });
+          } else {
+            toast({
+                title: "Departure Updated",
+                description: `The departure for ${savedDeparture.carrier} has been updated.`
+            });
+          }
       }
     } catch (error) {
         console.error("Error saving document: ", error);
@@ -270,7 +279,7 @@ export default function DepartureDashboard() {
       'Bay': d.bayDoor || 'N/A',
       'Seal No.': d.sealNumber || 'N/A',
       'Driver': d.driverName || 'N/A',
-      'Schedule No.': d.scheduleNumber,
+      'Schedule No.': d.scheduleNumber || 'N/A',
       'Status': d.status,
     }));
     
@@ -325,7 +334,9 @@ export default function DepartureDashboard() {
           const trailerNumber = getTrimmedString(row['Trailer']);
           const scheduleNumber = getTrimmedString(row['Schedule No.']);
 
+          // Basic validation for required fields
           if (!carrier || !destination || !trailerNumber || !scheduleNumber) {
+            console.warn('Skipping row due to missing required fields:', row);
             return null;
           }
 
@@ -335,11 +346,11 @@ export default function DepartureDashboard() {
             via: row['Via'] === 'N/A' ? '' : getTrimmedString(row['Via']),
             trailerNumber: trailerNumber,
             collectionTime: collectionTime.toISOString(),
-            bayDoor: row['Bay'] === 'N/A' || !row['Bay'] ? null : Number(row['Bay']),
+            bayDoor: (row['Bay'] && row['Bay'] !== 'N/A') ? Number(row['Bay']) : null,
             sealNumber: row['Seal No.'] === 'N/A' ? '' : getTrimmedString(row['Seal No.']),
             driverName: row['Driver'] === 'N/A' ? '' : getTrimmedString(row['Driver']),
             scheduleNumber: scheduleNumber,
-            status: getTrimmedString(row['Status']) as Status || 'Waiting',
+            status: (getTrimmedString(row['Status']) as Status) || 'Waiting',
           };
         }).filter((d): d is Omit<Departure, 'id'> => d !== null);
 
@@ -464,7 +475,7 @@ export default function DepartureDashboard() {
                     )}
                     {!isLoadingDepartures && departures && departures.length > 0 ? (
                       departures.map(d => {
-                        const carrierStyle = carrierStyles[d.carrier];
+                        const carrierStyle = carrierStyles[d.carrier] || {};
                         return (
                           <TableRow key={d.id} className={cn('transition-colors', statusColors[d.status])}>
                             <TableCell>

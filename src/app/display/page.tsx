@@ -113,7 +113,7 @@ export default function DisplayPage() {
   const renderTableRows = (departuresToRender: Departure[]) => {
     if (!departuresToRender || departuresToRender.length === 0) return null;
     return departuresToRender.map(d => {
-        const carrierStyle = carrierStyles[d.carrier];
+        const carrierStyle = carrierStyles[d.carrier] || {};
         return (
           <TableRow key={d.id} className={cn('transition-colors h-16 md:h-20', statusColors[d.status])}>
             <TableCell>
@@ -145,7 +145,7 @@ export default function DisplayPage() {
   const renderMobileCards = (departuresToRender: Departure[]) => {
     if (!departuresToRender || departuresToRender.length === 0) return null;
     return departuresToRender.map(d => {
-      const carrierStyle = carrierStyles[d.carrier];
+      const carrierStyle = carrierStyles[d.carrier] || {};
       return (
         <Card key={d.id} className={cn("mb-4 border-l-4", statusColors[d.status], `border-${statusColors[d.status].split(' ')[0]}`)}>
           <CardContent className="p-4 space-y-3">
