@@ -9,11 +9,11 @@ import { Package, Truck, Ship, Route, Clock as ClockIcon, Tag, MapPin, ChevronRi
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { collection, query, orderBy } from 'firebase/firestore';
 import Clock from '@/components/clock';
 import { STATUSES } from '@/lib/types';
 import './scrolling-animation.css';
-import { useCollection, useFirestore } from '@/firebase';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -57,15 +57,17 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 
 export default function DisplayPage() {
-  const firestore = useFirestore();
-  const departuresQuery = firestore ? query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc')) : null;
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
+  const [departures] = useLocalStorage<Departure[]>('departures', []);
+  const [isLoadingDepartures, setIsLoadingDepartures] = useState(true);
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   
+  useEffect(() => {
+    setIsLoadingDepartures(false);
+  }, []);
   
   useEffect(() => {
     if (isLoadingDepartures || !departures) return;
@@ -95,6 +97,8 @@ export default function DisplayPage() {
   }, [departures, isLoadingDepartures]);
 
 
+  const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
+  
   const renderTableRows = (departuresToRender: Departure[]) => {
     if (!departuresToRender || departuresToRender.length === 0) return null;
     return departuresToRender.map(d => {
@@ -163,7 +167,7 @@ export default function DisplayPage() {
     });
   };
 
-  const animationDuration = departures ? departures.length * 15 : 0;
+  const animationDuration = sortedDepartures ? sortedDepartures.length * 15 : 0;
 
   return (
     <div className="flex flex-col h-screen bg-background text-lg md:text-xl">
@@ -211,10 +215,10 @@ export default function DisplayPage() {
                           Loading Departures...
                         </TableCell>
                       </TableRow>
-                    ) : departures && departures.length > 0 ? (
+                    ) : sortedDepartures.length > 0 ? (
                       <>
-                       {renderTableRows(departures)}
-                       {isScrolling && renderTableRows(departures)}
+                       {renderTableRows(sortedDepartures)}
+                       {isScrolling && renderTableRows(sortedDepartures)}
                       </>
                     ) : (
                       <TableRow>
@@ -237,10 +241,10 @@ export default function DisplayPage() {
             style={{ animationDuration: isScrolling ? `${animationDuration}s` : undefined }}>
             {isLoadingDepartures ? (
               <p className="text-center text-muted-foreground p-8">Loading Departures...</p>
-            ) : departures && departures.length > 0 ? (
+            ) : sortedDepartures.length > 0 ? (
               <>
-                {renderMobileCards(departures)}
-                {isScrolling && renderMobileCards(departures)}
+                {renderMobileCards(sortedDepartures)}
+                {isScrolling && renderMobileCards(sortedDepartures)}
               </>
             ) : (
               <p className="text-center text-muted-foreground p-8">No Departures Scheduled</p>
