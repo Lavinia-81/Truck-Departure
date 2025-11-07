@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Caravan, Truck, Package, Anchor, Building, Trash2, TrafficCone, AlertTriangle, CheckCircle2, PlusCircle, Ship, Route } from 'lucide-react';
+import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route } from 'lucide-react';
 import { format, parseISO, addMinutes } from 'date-fns';
-import type { Departure, Status, Carrier } from '@/lib/types';
+import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import {
@@ -26,8 +26,8 @@ import {
 import Header from './header';
 import { db } from '@/firebase/firebase';
 import { collection, doc, writeBatch, getDocs, query, orderBy, addDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
-import { STATUSES, CARRIERS } from '@/lib/types';
+import { Loader2, Package, Truck } from 'lucide-react';
+import { STATUSES } from '@/lib/types';
 import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -198,8 +198,7 @@ export default function DepartureDashboard() {
   const confirmDelete = async () => {
     if (deletingDeparture) {
       try {
-        const departureRef = doc(db, 'dispatchSchedules', deletingDeparture.id);
-        await deleteDoc(departureRef);
+        await deleteDoc(doc(db, 'dispatchSchedules', deletingDeparture.id));
         toast({
           title: "Departure Deleted",
           description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
@@ -237,8 +236,7 @@ export default function DepartureDashboard() {
                   description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
               });
           }
-          const departureRef = doc(db, 'dispatchSchedules', id);
-          await setDoc(departureRef, departureData, { merge: true });
+          await setDoc(doc(db, 'dispatchSchedules', id), departureData, { merge: true });
           toast({
               title: "Departure Updated",
               description: `The departure for ${savedDeparture.carrier} has been updated.`
@@ -321,7 +319,7 @@ export default function DepartureDashboard() {
           if (isNaN(collectionTime.getTime())) return null;
 
           return {
-            carrier: row['Carrier'] as Carrier,
+            carrier: row['Carrier'],
             destination: row['Destination'],
             via: row['Via'] === 'N/A' ? '' : row['Via'],
             trailerNumber: String(row['Trailer']),
@@ -330,9 +328,9 @@ export default function DepartureDashboard() {
             sealNumber: row['Seal No.'] === 'N/A' ? '' : String(row['Seal No.']),
             driverName: row['Driver'] === 'N/A' ? '' : String(row['Driver']),
             scheduleNumber: String(row['Schedule No.']),
-            status: row['Status'] as Status,
+            status: row['Status'],
           };
-        }).filter((d): d is Omit<Departure, 'id'> => d !== null && d.carrier && d.destination && d.collectionTime && (CARRIERS as readonly string[]).includes(d.carrier));
+        }).filter((d): d is Omit<Departure, 'id'> => d !== null && d.carrier && d.destination && d.collectionTime );
 
         if (newDepartures.length > 0) {
             const batch = writeBatch(db);
