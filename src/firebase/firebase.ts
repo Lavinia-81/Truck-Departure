@@ -7,12 +7,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA24e3_Jrnw5B5xS4aKk3k1E2f9g0h7Y8o",
-  authDomain: "truck-departure-management-a202c.firebaseapp.com",
-  projectId: "truck-departure-management-a202c",
-  storageBucket: "truck-departure-management-a202c.appspot.com",
-  messagingSenderId: "33887532644",
-  appId: "1:33887532644:web:e0f8f8f4a1c5b2a4c1c9e4",
+  apiKey: "AIzaSyBsDfq1ZyEQSBRYh2SixKZ0IJtH-a9-EtY",
+  authDomain: "studio-6900668736-45260.firebaseapp.com",
+  projectId: "studio-6900668736-45260",
+  storageBucket: "studio-6900668736-45260.appspot.com",
+  messagingSenderId: "966294973587",
+  appId: "1:966294973587:web:771815f5f2772a0618f166",
   measurementId: "G-7E4Y9XQJ1E"
 };
 

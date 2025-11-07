@@ -319,18 +319,18 @@ export default function DepartureDashboard() {
           if (isNaN(collectionTime.getTime())) return null;
 
           return {
-            carrier: row['Carrier'],
-            destination: row['Destination'],
-            via: row['Via'] === 'N/A' ? '' : row['Via'],
-            trailerNumber: String(row['Trailer']),
+            carrier: row['Carrier']?.trim() || '',
+            destination: row['Destination']?.trim() || '',
+            via: row['Via'] === 'N/A' ? '' : row['Via']?.trim() || '',
+            trailerNumber: String(row['Trailer'] || '').trim(),
             collectionTime: collectionTime.toISOString(),
             bayDoor: row['Bay'] === 'N/A' ? null : Number(row['Bay']),
-            sealNumber: row['Seal No.'] === 'N/A' ? '' : String(row['Seal No.']),
-            driverName: row['Driver'] === 'N/A' ? '' : String(row['Driver']),
-            scheduleNumber: String(row['Schedule No.']),
-            status: row['Status'],
+            sealNumber: row['Seal No.'] === 'N/A' ? '' : String(row['Seal No.'] || '').trim(),
+            driverName: row['Driver'] === 'N/A' ? '' : String(row['Driver'] || '').trim(),
+            scheduleNumber: String(row['Schedule No.'] || '').trim(),
+            status: row['Status']?.trim() || 'Waiting',
           };
-        }).filter((d): d is Omit<Departure, 'id'> => d !== null && d.carrier && d.destination && d.collectionTime );
+        }).filter((d): d is Omit<Departure, 'id'> => d !== null && d.carrier && d.destination && d.collectionTime && d.trailerNumber);
 
         if (newDepartures.length > 0) {
             const batch = writeBatch(db);
