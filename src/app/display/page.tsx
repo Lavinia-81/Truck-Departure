@@ -273,3 +273,5 @@ export default function DisplayPage() {
     </div>
   );
 }
+
+    
