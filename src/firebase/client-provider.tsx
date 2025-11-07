@@ -12,6 +12,7 @@ export function FirebaseClientProvider({
   children,
 }: FirebaseClientProviderProps) {
   const firebaseServices = useMemo(() => {
+    // This will only run once on the client
     return initializeFirebase();
   }, []);
 

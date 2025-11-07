@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  "projectId": "truck-departure-management",
-  "appId": "1:923376535972:web:a75224b33e51419e456209",
-  "storageBucket": "truck-departure-management.appspot.com",
-  "apiKey": "AIzaSyAzVbHKehM03izt_exf3yRSCGvF-2r5oG8",
-  "authDomain": "truck-departure-management.firebaseapp.com",
-  "messagingSenderId": "923376535972"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
 };

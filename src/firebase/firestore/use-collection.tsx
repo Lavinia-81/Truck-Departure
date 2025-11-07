@@ -20,14 +20,16 @@ export function useCollection<T = any>(
   const initialLoadingDone = useRef(false);
 
   useEffect(() => {
+    // Reset state if query is null/undefined
     if (!q) {
       setData(null);
-      setIsLoading(false);
+      setIsLoading(false); // No query, not loading.
       setError(null);
       initialLoadingDone.current = false;
       return;
     }
 
+    // Set loading to true only on the first run for a new query
     if (!initialLoadingDone.current) {
       setIsLoading(true);
     }
@@ -40,6 +42,7 @@ export function useCollection<T = any>(
           id: doc.id,
         }));
         setData(results);
+        // Once the first snapshot is received, loading is complete.
         if (!initialLoadingDone.current) {
           setIsLoading(false);
           initialLoadingDone.current = true;
@@ -53,17 +56,20 @@ export function useCollection<T = any>(
       }
     );
 
-    // Set loading to false once the listener is attached.
-    // This provides a faster perceived load time.
+    // Set loading to false once the listener is attached if we haven't already.
+    // This provides a faster perceived load time for subsequent updates.
     if (!initialLoadingDone.current) {
         setIsLoading(false);
     }
 
+    // Cleanup function
     return () => {
       unsubscribe();
+      // Reset the initial loading flag when the query changes.
       initialLoadingDone.current = false;
     }
-  }, [q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q?.path, q?.converter]); // Depend on query properties that define its identity
 
   return { data, isLoading, error };
 }

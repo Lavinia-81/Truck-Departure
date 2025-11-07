@@ -3,10 +3,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import {
-  getFirestore,
-  Firestore
-} from 'firebase/firestore';
+import { getFirestore, Firestore } from 'firebase/firestore';
 import { useMemo, type DependencyList } from 'react';
 
 // SECTION: Firebase Initialization
@@ -20,7 +17,7 @@ interface FirebaseServices {
 let firebaseServices: FirebaseServices | null = null;
 
 export function initializeFirebase(): FirebaseServices {
-  if (firebaseServices) {
+  if (firebaseServices && getApps().length > 0) {
     return firebaseServices;
   }
 
@@ -32,7 +29,6 @@ export function initializeFirebase(): FirebaseServices {
   return firebaseServices;
 }
 
-
 // SECTION: Memoization Hook
 
 export function useMemoFirebase<T>(factory: () => T | null, deps: DependencyList): T | null {
@@ -42,7 +38,6 @@ export function useMemoFirebase<T>(factory: () => T | null, deps: DependencyList
 
 // SECTION: Type Utilities
 export type WithId<T> = T & { id: string };
-
 
 // SECTION: Barrel Exports for Firebase services
 

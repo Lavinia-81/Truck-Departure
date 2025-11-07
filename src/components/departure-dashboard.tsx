@@ -98,6 +98,7 @@ export default function DepartureDashboard() {
         title: "Failed to load data",
         description: "Could not fetch departures from the database. Check console for details.",
       });
+      console.error(error);
     }
   }, [error, toast]);
 
@@ -334,12 +335,12 @@ export default function DepartureDashboard() {
           return {
             carrier: carrier,
             destination: destination,
-            via: row['Via'] === 'N/A' ? '' : getTrimmedString(row['Via']),
+            via: (row['Via'] === 'N/A' || !row['Via']) ? '' : getTrimmedString(row['Via']),
             trailerNumber: trailerNumber,
             collectionTime: collectionTime.toISOString(),
             bayDoor: (row['Bay'] && row['Bay'] !== 'N/A') ? Number(row['Bay']) : null,
-            sealNumber: row['Seal No.'] === 'N/A' ? '' : getTrimmedString(row['Seal No.']),
-            driverName: row['Driver'] === 'N/A' ? '' : getTrimmedString(row['Driver']),
+            sealNumber: (row['Seal No.'] === 'N/A' || !row['Seal No.']) ? '' : getTrimmedString(row['Seal No.']),
+            driverName: (row['Driver'] === 'N/A' || !row['Driver']) ? '' : getTrimmedString(row['Driver']),
             scheduleNumber: scheduleNumber,
             status: (getTrimmedString(row['Status']) as Status) || 'Waiting',
           };
