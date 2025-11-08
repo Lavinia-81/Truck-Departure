@@ -69,10 +69,6 @@ export default function Header({ onImport, onExport, onAddNew }: HeaderProps) {
       </div>
 
       <div className="hidden items-center gap-4 ml-auto md:flex">
-        <Button size="sm" onClick={onAddNew}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Departure
-        </Button>
         <Button size="sm" variant="outline" onClick={onImport}>
             <FileUp className="mr-2 h-4 w-4" />
             Import
