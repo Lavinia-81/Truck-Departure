@@ -15,10 +15,9 @@ import { Separator } from "./ui/separator";
 interface HeaderProps {
     onImport: () => void;
     onExport: () => void;
-    onAddNew: () => void;
 }
 
-export default function Header({ onImport, onExport, onAddNew }: HeaderProps) {
+export default function Header({ onImport, onExport }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-background px-4 py-3 md:px-6">
       {/* Mobile Menu */}
@@ -37,7 +36,6 @@ export default function Header({ onImport, onExport, onAddNew }: HeaderProps) {
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-3 py-4">
-              <Button onClick={onAddNew}><PlusCircle className="mr-2 h-4 w-4" /> Add Departure</Button>
               <Button variant="outline" onClick={onImport}><FileUp className="mr-2 h-4 w-4" /> Import</Button>
               <Button variant="outline" onClick={onExport}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
           </div>

@@ -368,7 +368,6 @@ export default function DepartureDashboard() {
         <Header 
           onImport={handleImportClick}
           onExport={handleExport}
-          onAddNew={handleAddNew}
         />
         <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
           <Card className="flex-1 flex flex-col overflow-hidden">
