@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import Clock from '@/components/clock';
 import { STATUSES } from '@/lib/types';
 import './scrolling-animation.css';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useCollection } from '@/firebase';
 
 
 const statusColors: Record<Status, string> = {
@@ -57,17 +57,12 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 
 export default function DisplayPage() {
-  const [departures] = useLocalStorage<Departure[]>('departures', []);
-  const [isLoadingDepartures, setIsLoadingDepartures] = useState(true);
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>('dispatchSchedules');
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
-  
-  useEffect(() => {
-    setIsLoadingDepartures(false);
-  }, []);
   
   useEffect(() => {
     if (isLoadingDepartures || !departures) return;

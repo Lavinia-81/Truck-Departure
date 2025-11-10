@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route } from 'lucide-react';
-import { format, parseISO, addMinutes } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,7 +29,8 @@ import { STATUSES } from '@/lib/types';
 import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useCollection, useFirestore } from '@/firebase';
+import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -73,8 +74,8 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 
 export default function DepartureDashboard() {
-  const [departures, setDepartures] = useLocalStorage<Departure[]>('departures', []);
-  const [isLoadingDepartures, setIsLoadingDepartures] = useState(true);
+  const firestore = useFirestore();
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>('dispatchSchedules');
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
@@ -88,46 +89,7 @@ export default function DepartureDashboard() {
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setIsLoadingDepartures(false);
-  }, []);
-
-  useEffect(() => {
-    if (!departures || isLoadingDepartures) return;
-
-    const interval = setInterval(() => {
-      const now = new Date();
-      let hasChanged = false;
-      const updatedDepartures = departures.map(d => {
-        if (d.status === 'Departed' || d.status === 'Cancelled' || d.status === 'Delayed') {
-            return d;
-        }
-
-        const collectionTime = new Date(d.collectionTime);
-        let shouldBeDelayed = false;
-
-        if (d.status === 'Loading' && now > collectionTime) {
-            shouldBeDelayed = true;
-        } else if (d.status === 'Waiting' && now > addMinutes(collectionTime, 10)) {
-            shouldBeDelayed = true;
-        }
-
-        if (shouldBeDelayed) {
-            hasChanged = true;
-            return { ...d, status: 'Delayed' as Status };
-        }
-        return d;
-      });
-
-      if (hasChanged) {
-        setDepartures(updatedDepartures);
-      }
-    }, 60000); // Check every minute
-
-    return () => clearInterval(interval);
-  }, [departures, isLoadingDepartures, setDepartures]);
-
+  
   const handleAddNew = () => {
     setEditingDeparture(null);
     setIsDialogOpen(true);
@@ -169,7 +131,6 @@ export default function DepartureDashboard() {
         title: "Error Fetching Route Status",
         description: description,
       });
-      // Close the dialog on error
       setIsRouteStatusDialogOpen(false); 
     } finally {
       setIsRouteStatusLoading(false);
@@ -177,8 +138,9 @@ export default function DepartureDashboard() {
   };
 
   const confirmDelete = async () => {
-    if (deletingDeparture) {
-        setDepartures(prev => prev.filter(d => d.id !== deletingDeparture.id));
+    if (deletingDeparture && firestore) {
+        const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
+        await deleteDoc(docRef);
         toast({
           title: "Departure Deleted",
           description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
@@ -188,38 +150,49 @@ export default function DepartureDashboard() {
     }
   };
 
-  const handleSave = async (savedDeparture: Departure) => {
+  const handleSave = async (savedDeparture: Omit<Departure, 'id'> & { id?: string }) => {
+    if (!firestore) return;
+
     const isNew = !savedDeparture.id;
     
-    if (isNew) {
-        const newDeparture = { ...savedDeparture, id: new Date().toISOString() };
-        setDepartures(prev => [...prev, newDeparture].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()));
-        toast({
-            title: "Departure Added",
-            description: `A new departure for ${savedDeparture.carrier} has been added.`
-        });
-    } else {
-        const originalDeparture = departures?.find(d => d.id === savedDeparture.id);
-        if (originalDeparture?.status !== 'Departed' && savedDeparture.status === 'Departed') {
-            toast({
-                title: "Truck Departed",
-                description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
-            });
-        }
-        
-        setDepartures(prev => prev.map(d => d.id === savedDeparture.id ? savedDeparture : d).sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()));
+    try {
+      if (isNew) {
+          const collectionRef = collection(firestore, 'dispatchSchedules');
+          await addDoc(collectionRef, savedDeparture);
+          toast({
+              title: "Departure Added",
+              description: `A new departure for ${savedDeparture.carrier} has been added.`
+          });
+      } else {
+          const docRef = doc(firestore, 'dispatchSchedules', savedDeparture.id);
+          const originalDeparture = departures?.find(d => d.id === savedDeparture.id);
+          
+          await setDoc(docRef, savedDeparture);
 
-        if (originalDeparture?.status !== savedDeparture.status) {
-          toast({
-              title: "Status Updated",
-              description: `Departure for ${savedDeparture.carrier} is now ${savedDeparture.status}.`
-          });
-        } else {
-          toast({
-              title: "Departure Updated",
-              description: `The departure for ${savedDeparture.carrier} has been updated.`
-          });
-        }
+          if (originalDeparture?.status !== 'Departed' && savedDeparture.status === 'Departed') {
+              toast({
+                  title: "Truck Departed",
+                  description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
+              });
+          } else if (originalDeparture?.status !== savedDeparture.status) {
+            toast({
+                title: "Status Updated",
+                description: `Departure for ${savedDeparture.carrier} is now ${savedDeparture.status}.`
+            });
+          } else {
+            toast({
+                title: "Departure Updated",
+                description: `The departure for ${savedDeparture.carrier} has been updated.`
+            });
+          }
+      }
+    } catch (error) {
+       console.error("Error saving departure:", error);
+       toast({
+         variant: "destructive",
+         title: "Save Failed",
+         description: "Could not save the departure to the database.",
+       });
     }
   };
 
@@ -262,6 +235,7 @@ export default function DepartureDashboard() {
   };
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!firestore) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -274,7 +248,7 @@ export default function DepartureDashboard() {
         const worksheet = workbook.Sheets[sheetName];
         const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        const newDepartures: Departure[] = json.map((row) => {
+        const newDepartures: Omit<Departure, 'id'>[] = json.map((row): Omit<Departure, 'id'> | null => {
           const collectionTimeValue = row['Collection Time'];
           if (!collectionTimeValue) return null;
           
@@ -295,15 +269,13 @@ export default function DepartureDashboard() {
           const trailerNumber = getTrimmedString(row['Trailer']);
           const scheduleNumber = getTrimmedString(row['Schedule No.']);
 
-          // Basic validation for required fields
           if (!carrier || !destination || !trailerNumber || !scheduleNumber) {
             console.warn('Skipping row due to missing required fields:', row);
             return null;
           }
 
           return {
-            id: new Date().toISOString() + Math.random(), // simple unique id
-            carrier: carrier,
+            carrier: carrier as Departure['carrier'],
             destination: destination,
             via: (row['Via'] === 'N/A' || !row['Via']) ? '' : getTrimmedString(row['Via']),
             trailerNumber: trailerNumber,
@@ -314,13 +286,20 @@ export default function DepartureDashboard() {
             scheduleNumber: scheduleNumber,
             status: (getTrimmedString(row['Status']) as Status) || 'Waiting',
           };
-        }).filter((d): d is Departure => d !== null);
+        }).filter((d): d is Omit<Departure, 'id'> => d !== null);
 
         if (newDepartures.length > 0) {
-            setDepartures(prev => [...prev, ...newDepartures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()));
+            const batch = writeBatch(firestore);
+            const collectionRef = collection(firestore, 'dispatchSchedules');
+            newDepartures.forEach(dep => {
+              const docRef = doc(collectionRef); // Automatically generate new ID
+              batch.set(docRef, dep);
+            });
+            await batch.commit();
+
             toast({
                 title: "Import Successful",
-                description: `${newDepartures.length} departures have been added from the Excel file.`,
+                description: `${newDepartures.length} departures have been added to Firestore.`,
             });
         } else {
              toast({
@@ -344,7 +323,8 @@ export default function DepartureDashboard() {
   };
   
   const handleClearAll = async () => {
-    if (departures.length === 0) {
+    if (!firestore) return;
+    if (!departures || departures.length === 0) {
         toast({
             title: "Already Empty",
             description: "There is no data to clear."
@@ -352,11 +332,28 @@ export default function DepartureDashboard() {
         setIsClearDialogOpen(false);
         return;
     }
-    setDepartures([]);
-    toast({
-        title: "Clearance Complete",
-        description: "All departure data has been deleted."
-    });
+    
+    try {
+        const collectionRef = collection(firestore, 'dispatchSchedules');
+        const querySnapshot = await getDocs(collectionRef);
+        const batch = writeBatch(firestore);
+        querySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        toast({
+            title: "Clearance Complete",
+            description: "All departure data has been deleted from Firestore."
+        });
+    } catch (error) {
+        console.error("Error clearing all data:", error);
+        toast({
+            variant: "destructive",
+            title: "Clearance Failed",
+            description: "Could not delete all departure data. Please try again."
+        });
+    }
+    
     setIsClearDialogOpen(false);
   };
 
@@ -412,7 +409,7 @@ export default function DepartureDashboard() {
                         <TableCell colSpan={11} className="text-center h-24">
                             <div className="flex justify-center items-center">
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                <span>Loading departures...</span>
+                                <span>Loading departures from Firestore...</span>
                             </div>
                         </TableCell>
                       </TableRow>
@@ -542,7 +539,7 @@ export default function DepartureDashboard() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all departure data from local storage.
+                This action cannot be undone. This will permanently delete all departure data from the database.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

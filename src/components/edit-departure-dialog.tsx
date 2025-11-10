@@ -8,7 +8,7 @@ interface EditDepartureDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   departure: Departure | null
-  onSave: (departure: Departure) => void
+  onSave: (departure: Omit<Departure, 'id'> & { id?: string }) => void
 }
 
 export function EditDepartureDialog({ isOpen, onOpenChange, departure, onSave }: EditDepartureDialogProps) {

@@ -27,7 +27,7 @@ type DepartureFormValues = z.infer<typeof formSchema>;
 
 interface DepartureFormProps {
   departure: Departure | null
-  onSave: (departure: Departure) => void
+  onSave: (departure: Omit<Departure, 'id'> & { id?: string }) => void
   onCancel: () => void
 }
 
@@ -60,13 +60,16 @@ export function DepartureForm({ departure, onSave, onCancel }: DepartureFormProp
   });
 
   function onSubmit(data: DepartureFormValues) {
-    const newDeparture: Departure = {
-      id: departure?.id || '', // ID will be handled by parent component (Firestore)
+    const processedData: Omit<Departure, 'id'> & { id?: string } = {
+      ...departure, 
       ...data,
       collectionTime: new Date(data.collectionTime).toISOString(),
       bayDoor: data.bayDoor ? Number(data.bayDoor) : null,
     };
-    onSave(newDeparture);
+    if (!departure) {
+      delete processedData.id;
+    }
+    onSave(processedData);
   }
 
   return (
