@@ -12,7 +12,8 @@ import { cn } from '@/lib/utils';
 import Clock from '@/components/clock';
 import { STATUSES } from '@/lib/types';
 import './scrolling-animation.css';
-import { useCollection } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 
 const statusColors: Record<Status, string> = {
@@ -57,7 +58,10 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 
 export default function DisplayPage() {
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>('dispatchSchedules');
+  const firestore = useFirestore();
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
+    collection(firestore, 'dispatchSchedules')
+  );
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);

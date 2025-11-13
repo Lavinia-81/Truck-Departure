@@ -75,7 +75,9 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DepartureDashboard() {
   const firestore = useFirestore();
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>('dispatchSchedules');
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
+    collection(firestore, 'dispatchSchedules')
+  );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
