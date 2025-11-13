@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Route, Monitor, Menu, PlusCircle, FileUp, FileDown } from "lucide-react";
+import { Route, Monitor, Menu, FileUp, FileDown, Database } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -18,6 +18,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onImport, onExport }: HeaderProps) {
+  const firebaseUrl = `https://console.firebase.google.com/project/studioproj-55921/firestore/data`;
+
   return (
     <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-background px-4 py-3 md:px-6">
       {/* Mobile Menu */}
@@ -41,6 +43,10 @@ export default function Header({ onImport, onExport }: HeaderProps) {
           </div>
           <Separator />
            <nav className="grid gap-4 text-lg font-medium mt-4">
+             <Link href={firebaseUrl} target="_blank" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Database className="h-5 w-5" />
+              Database
+            </Link>
             <Link href="/display" target="_blank" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
               <Monitor className="h-5 w-5" />
               Public Display
@@ -74,6 +80,12 @@ export default function Header({ onImport, onExport }: HeaderProps) {
         <Button size="sm" variant="outline" onClick={onExport}>
             <FileDown className="mr-2 h-4 w-4" />
             Export
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link href={firebaseUrl} target="_blank">
+            <Database className="mr-2 h-4 w-4" />
+            Database
+          </Link>
         </Button>
         <Button variant="outline" size="sm" asChild>
           <Link href="/display" target="_blank">
