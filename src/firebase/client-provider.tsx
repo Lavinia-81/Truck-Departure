@@ -1,42 +1,58 @@
 'use client';
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { FirebaseProvider, initializeFirebase } from '.';
 import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
-// This is a re-implementation of the Firebase client provider that
-// is more robust and ensures that the Firebase app is initialized
-// only once.
+type FirebaseContextState = {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
+} | null;
+
 export function FirebaseClientProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const firebaseContext = useMemo((): {
-    firebaseApp: FirebaseApp;
-    auth: Auth;
-    firestore: Firestore;
-  } | null => {
+  const [firebaseContext, setFirebaseContext] =
+    useState<FirebaseContextState>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
     try {
-      return initializeFirebase();
+      setFirebaseContext(initializeFirebase());
     } catch (e: any) {
-      // If initialization fails, we'll return null and the app can
-      // render an error state.
-      return null;
+      console.error('Firebase initialization failed:', e);
+      setError(e);
     }
   }, []);
 
-  if (!firebaseContext) {
-    // You can render a more sophisticated error boundary here
+  if (error) {
     return (
-        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-            <div className="text-center text-destructive p-4 border border-destructive/50 rounded-lg">
-                <h1 className="text-xl font-bold">Firebase Configuration Error</h1>
-                <p>Could not initialize Firebase. Please check your environment variables.</p>
-                <p className="text-sm text-muted-foreground mt-2">Error: Missing or invalid NEXT_PUBLIC_FIREBASE_CONFIG.</p>
-            </div>
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="text-center text-destructive p-4 border border-destructive/50 rounded-lg max-w-md">
+          <h1 className="text-xl font-bold">Firebase Configuration Error</h1>
+          <p>
+            Could not initialize Firebase. Please check your environment
+            variables.
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Error: {error.message}
+          </p>
         </div>
+      </div>
+    );
+  }
+
+  if (!firebaseContext) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Initializing Firebase...</p>
+      </div>
     );
   }
 
