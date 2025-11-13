@@ -75,9 +75,8 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DepartureDashboard() {
   const firestore = useFirestore();
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    firestore ? collection(firestore, 'dispatchSchedules') : null
-  );
+  const departuresCollection = firestore ? collection(firestore, 'dispatchSchedules') : null;
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCollection);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
@@ -273,7 +272,7 @@ export default function DepartureDashboard() {
           }
           
           if (isNaN(collectionTime.getTime())) return null;
-
+          
           const getTrimmedString = (value: any): string => {
             if (value === null || typeof value === 'undefined') {
               return '';
