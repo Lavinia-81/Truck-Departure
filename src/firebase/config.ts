@@ -12,3 +12,4 @@ export const firebaseConfig: FirebaseOptions = {
   messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
   appId: "REPLACE_WITH_YOUR_APP_ID"
 };
+
