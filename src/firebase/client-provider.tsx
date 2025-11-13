@@ -20,8 +20,7 @@ export function FirebaseClientProvider({
   } | null => {
     try {
       return initializeFirebase();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
       // If initialization fails, we'll return null and the app can
       // render an error state.
       return null;
@@ -35,6 +34,7 @@ export function FirebaseClientProvider({
             <div className="text-center text-destructive p-4 border border-destructive/50 rounded-lg">
                 <h1 className="text-xl font-bold">Firebase Configuration Error</h1>
                 <p>Could not initialize Firebase. Please check your environment variables.</p>
+                <p className="text-sm text-muted-foreground mt-2">Error: Missing or invalid NEXT_PUBLIC_FIREBASE_CONFIG.</p>
             </div>
         </div>
     );
