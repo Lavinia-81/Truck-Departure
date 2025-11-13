@@ -139,25 +139,34 @@ export default function DepartureDashboard() {
   };
 
   const confirmDelete = async () => {
-    if (deletingDeparture && firestore) {
-        try {
-            const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
-            await deleteDoc(docRef);
-            toast({
-              title: "Departure Deleted",
-              description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
-            });
-        } catch (error) {
-            console.error("Error deleting departure: ", error);
-            toast({
-                variant: "destructive",
-                title: "Deletion Failed",
-                description: "Could not delete the departure from the database.",
-            });
-        } finally {
-            setIsDeleteDialogOpen(false);
-            setDeletingDeparture(null);
-        }
+    if (!deletingDeparture || !deletingDeparture.id || !firestore) {
+        toast({
+            variant: "destructive",
+            title: "Deletion Failed",
+            description: "Invalid departure selected for deletion.",
+        });
+        setIsDeleteDialogOpen(false);
+        setDeletingDeparture(null);
+        return;
+    }
+
+    try {
+        const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
+        await deleteDoc(docRef);
+        toast({
+            title: "Departure Deleted",
+            description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
+        });
+    } catch (error) {
+        console.error("Error deleting departure: ", error);
+        toast({
+            variant: "destructive",
+            title: "Deletion Failed",
+            description: "Could not delete the departure from the database.",
+        });
+    } finally {
+        setIsDeleteDialogOpen(false);
+        setDeletingDeparture(null);
     }
   };
 
@@ -568,5 +577,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    
