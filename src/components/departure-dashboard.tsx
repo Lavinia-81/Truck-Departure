@@ -76,7 +76,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 export default function DepartureDashboard() {
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    collection(firestore, 'dispatchSchedules')
+    firestore ? collection(firestore, 'dispatchSchedules') : null
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -569,4 +569,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
