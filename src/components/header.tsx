@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Route, Monitor, Menu, FileUp, FileDown, Users, LogOut } from "lucide-react";
+import { Route, Monitor, Menu, FileUp, FileDown } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -13,18 +13,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "./ui/separator";
-import { useUser } from "@/firebase/auth/use-user";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { getAuth, signOut } from "firebase/auth";
-
 
 interface HeaderProps {
     onImport: () => void;
@@ -32,17 +20,6 @@ interface HeaderProps {
 }
 
 export default function Header({ onImport, onExport }: HeaderProps) {
-  const { user, isAdmin } = useUser();
-
-  const handleLogout = async () => {
-    const auth = getAuth();
-    await signOut(auth);
-  };
-
-  const getInitials = (email: string | undefined | null) => {
-    return email ? email.substring(0, 2).toUpperCase() : '??';
-  };
-
   return (
     <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-background px-4 py-3 md:px-6">
       {/* Mobile Menu */}
@@ -73,10 +50,6 @@ export default function Header({ onImport, onExport }: HeaderProps) {
             <Link href="/optimize" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
               <Route className="h-5 w-5" />
               Route Optimizer
-            </Link>
-            <Link href="/admins" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-              <Users className="h-5 w-5" />
-              Manage Admins
             </Link>
           </nav>
         </SheetContent>
@@ -116,44 +89,6 @@ export default function Header({ onImport, onExport }: HeaderProps) {
             Route Optimizer
           </Link>
         </Button>
-      </div>
-
-       <div className="ml-auto flex items-center gap-4">
-        {user && isAdmin && (
-          <Button variant="outline" size="sm" asChild className="hidden md:flex">
-            <Link href="/admins">
-              <Users className="mr-2 h-4 w-4" />
-              Manage Admins
-            </Link>
-          </Button>
-        )}
-        {user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
-                  <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Deconectare</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
       </div>
     </header>
   );

@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Route, Clock, Lightbulb } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import AuthGuard from "@/components/auth-guard";
 
 const formSchema = z.object({
   currentLocation: z.string().min(3, "Current location is required."),
@@ -129,8 +128,6 @@ function RouteOptimizerPageContent() {
 
 export default function RouteOptimizerPage() {
     return (
-        <AuthGuard>
-            <RouteOptimizerPageContent />
-        </AuthGuard>
+        <RouteOptimizerPageContent />
     )
 }
