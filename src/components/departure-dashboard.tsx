@@ -76,7 +76,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 export default function DepartureDashboard() {
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    collection(firestore, 'dispatchSchedules')
+    firestore ? collection(firestore, 'dispatchSchedules') : null
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -264,8 +264,13 @@ export default function DepartureDashboard() {
           
           if (isNaN(collectionTime.getTime())) return null;
 
-          const getTrimmedString = (value: any): string => (value ? String(value).trim() : '');
-
+          const getTrimmedString = (value: any): string => {
+            if (value === null || typeof value === 'undefined') {
+              return '';
+            }
+            return String(value).trim();
+          };
+          
           const carrier = getTrimmedString(row['Carrier']);
           const destination = getTrimmedString(row['Destination']);
           const trailerNumber = getTrimmedString(row['Trailer']);
