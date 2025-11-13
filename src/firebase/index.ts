@@ -19,9 +19,13 @@ export function initializeFirebase(): {
   firestore: Firestore;
 } {
   if (getApps().length === 0) {
-    const firebaseConfig = JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG || '{}');
+    const firebaseConfigStr = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
+    if (!firebaseConfigStr) {
+        throw new Error("Missing NEXT_PUBLIC_FIREBASE_CONFIG environment variable");
+    }
+    const firebaseConfig = JSON.parse(firebaseConfigStr);
     if (!firebaseConfig.apiKey) {
-        throw new Error("Missing or invalid NEXT_PUBLIC_FIREBASE_CONFIG environment variable");
+        throw new Error("Invalid NEXT_PUBLIC_FIREBASE_CONFIG: apiKey is missing");
     }
     firebaseApp = initializeApp(firebaseConfig);
     auth = getAuth(firebaseApp);
