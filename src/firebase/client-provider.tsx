@@ -22,21 +22,9 @@ export function FirebaseClientProvider({
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // This entire block now runs only on the client, after the initial render.
-    // This prevents any server-side execution of Firebase initialization.
     try {
-      // @ts-ignore
-      if (typeof __FIREBASE_CONFIG__ === 'undefined') {
-        setError(new Error("Firebase configuration is not available. Please check your setup."));
-        return;
-      }
-      // @ts-ignore
-      const firebaseConfig = __FIREBASE_CONFIG__;
-      if (!firebaseConfig.apiKey) {
-        setError(new Error("Invalid Firebase configuration received."));
-        return;
-      }
-      setFirebaseContext(initializeFirebase(firebaseConfig));
+      const context = initializeFirebase();
+      setFirebaseContext(context);
     } catch (e: any) {
       console.error('Firebase initialization failed:', e);
       setError(e);
@@ -49,9 +37,9 @@ export function FirebaseClientProvider({
         <div className="text-center text-destructive p-4 border border-destructive/50 rounded-lg max-w-md">
           <h1 className="text-xl font-bold">Firebase Configuration Error</h1>
           <p>
-            Could not initialize Firebase. Please check your setup.
+            Could not initialize Firebase. Please check your browser console for more details.
           </p>
-          <p className="text-sm text-muted-foreground mt-2">
+           <p className="text-sm text-muted-foreground mt-2">
             Error: {error.message}
           </p>
         </div>

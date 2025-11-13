@@ -10,18 +10,25 @@ let firebaseApp: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
-// This function is leveraged by the FirebaseProvider to safely initialize
-// the Firebase app and services, and make them available to the rest of
-// the application.
-export function initializeFirebase(firebaseConfig: any): {
+export function initializeFirebase(): {
   firebaseApp: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
 } {
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  };
+
+  if (!firebaseConfig.apiKey) {
+    throw new Error('Firebase API Key is not set in environment variables.');
+  }
+
   if (getApps().length === 0) {
-     if (!firebaseConfig || !firebaseConfig.apiKey) {
-        throw new Error("Invalid Firebase configuration provided");
-    }
     firebaseApp = initializeApp(firebaseConfig);
     auth = getAuth(firebaseApp);
     firestore = getFirestore(firebaseApp);
