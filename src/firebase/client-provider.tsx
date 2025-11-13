@@ -12,6 +12,9 @@ type FirebaseContextState = {
   firestore: Firestore;
 } | null;
 
+// This global is injected by the hosting environment.
+declare var __FIREBASE_CONFIG__: any;
+
 export function FirebaseClientProvider({
   children,
 }: {
@@ -22,12 +25,18 @@ export function FirebaseClientProvider({
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    try {
-      const context = initializeFirebase();
-      setFirebaseContext(context);
-    } catch (e: any) {
-      console.error('Firebase initialization failed:', e);
-      setError(e);
+    // This code only runs on the client.
+    if (typeof window !== 'undefined') {
+      try {
+        if (typeof __FIREBASE_CONFIG__ === 'undefined') {
+          throw new Error("Firebase configuration object '__FIREBASE_CONFIG__' not found.");
+        }
+        const context = initializeFirebase(__FIREBASE_CONFIG__);
+        setFirebaseContext(context);
+      } catch (e: any) {
+        console.error('Firebase initialization failed:', e);
+        setError(e);
+      }
     }
   }, []);
 
@@ -37,7 +46,7 @@ export function FirebaseClientProvider({
         <div className="text-center text-destructive p-4 border border-destructive/50 rounded-lg max-w-md">
           <h1 className="text-xl font-bold">Firebase Configuration Error</h1>
           <p>
-            Could not initialize Firebase. Please check your browser console for more details.
+            Could not initialize Firebase. Please check your setup.
           </p>
            <p className="text-sm text-muted-foreground mt-2">
             Error: {error.message}
