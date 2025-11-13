@@ -5,7 +5,6 @@ import {
   Firestore,
   getFirestore,
 } from 'firebase/firestore';
-import { firebaseConfig } from './config';
 
 let firebaseApp: FirebaseApp;
 let auth: Auth;
@@ -20,6 +19,10 @@ export function initializeFirebase(): {
   firestore: Firestore;
 } {
   if (getApps().length === 0) {
+    const firebaseConfig = JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG || '{}');
+    if (!firebaseConfig.apiKey) {
+        throw new Error("Missing or invalid NEXT_PUBLIC_FIREBASE_CONFIG environment variable");
+    }
     firebaseApp = initializeApp(firebaseConfig);
     auth = getAuth(firebaseApp);
     firestore = getFirestore(firebaseApp);
