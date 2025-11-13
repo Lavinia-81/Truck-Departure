@@ -76,7 +76,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 export default function DepartureDashboard() {
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    firestore ? collection(firestore, 'dispatchSchedules') : null
+    collection(firestore, 'dispatchSchedules')
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -557,7 +557,7 @@ export default function DepartureDashboard() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete all departure data from the database.
-              </AlertDialog-Description>
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -569,3 +569,4 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
+
