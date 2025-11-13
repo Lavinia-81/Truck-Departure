@@ -4,10 +4,25 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2, ShieldAlert } from 'lucide-react';
+import { getAuth, getRedirectResult } from 'firebase/auth';
+import { useToast } from './ui/use-toast';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAdmin, isAdminLoading } = useUser();
   const router = useRouter();
+  const auth = getAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    getRedirectResult(auth).catch((error) => {
+        console.error("Redirect sign-in failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Autentificare eșuată",
+            description: "A apărut o eroare în timpul autentificării. Vă rugăm să încercați din nou.",
+        });
+    });
+  }, [auth, toast]);
 
   useEffect(() => {
     const isAuthLoading = isLoading || isAdminLoading;

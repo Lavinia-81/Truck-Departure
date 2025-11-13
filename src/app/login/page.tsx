@@ -1,31 +1,48 @@
 'use client';
 
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { ChromeIcon } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { useEffect } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, isLoading } = useUser();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
 
   const handleGoogleSignIn = async () => {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      router.push('/');
+      // Use signInWithRedirect instead of signInWithPopup
+      await signInWithRedirect(auth, provider);
+      // The user will be redirected to the Google sign-in page.
+      // After sign-in, they will be redirected back to the app.
+      // The result is handled in the AuthGuard.
     } catch (error: any) {
       console.error("Authentication failed:", error);
       toast({
         variant: "destructive",
         title: "Autentificare eșuată",
-        description: "Nu s-a putut realiza autentificarea cu Google. Vă rugăm să încercați din nou.",
+        description: "Nu s-a putut iniția autentificarea cu Google. Vă rugăm să încercați din nou.",
       });
     }
   };
+
+  if (isLoading || user) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
