@@ -76,7 +76,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 export default function DepartureDashboard() {
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    collection(firestore, 'dispatchSchedules')
+    firestore ? collection(firestore, 'dispatchSchedules') : null
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -141,14 +141,24 @@ export default function DepartureDashboard() {
 
   const confirmDelete = async () => {
     if (deletingDeparture && firestore) {
-        const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
-        await deleteDoc(docRef);
-        toast({
-          title: "Departure Deleted",
-          description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
-        });
-        setIsDeleteDialogOpen(false);
-        setDeletingDeparture(null);
+        try {
+            const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
+            await deleteDoc(docRef);
+            toast({
+              title: "Departure Deleted",
+              description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
+            });
+        } catch (error) {
+            console.error("Error deleting departure: ", error);
+            toast({
+                variant: "destructive",
+                title: "Deletion Failed",
+                description: "Could not delete the departure from the database.",
+            });
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setDeletingDeparture(null);
+        }
     }
   };
 
@@ -547,7 +557,7 @@ export default function DepartureDashboard() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete all departure data from the database.
-              </AlertDialogDescription>
+              </AlertDialog-Description>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -559,5 +569,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    
