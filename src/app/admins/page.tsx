@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Mail, PlusCircle, Trash2, UserX } from 'lucide-react';
+import { Loader2, Mail, PlusCircle, Trash2, UserX, Users } from 'lucide-react';
+import AuthGuard from '@/components/auth-guard';
 
 const formSchema = z.object({
   email: z.string().email('Adresa de e-mail nu este validă.'),
@@ -20,7 +21,7 @@ const formSchema = z.object({
 type AdminFormValues = z.infer<typeof formSchema>;
 type Admin = { id: string; email: string };
 
-export default function AdminsPage() {
+function AdminsPageContent() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const adminsCollection = firestore ? collection(firestore, 'admins') : null;
@@ -96,7 +97,10 @@ export default function AdminsPage() {
     <div className="container mx-auto p-4 md:p-8">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Gestionare administratori</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users />
+            Gestionare administratori
+          </CardTitle>
           <CardDescription>
             Adăugați sau ștergeți adresele de e-mail ale utilizatorilor care pot accesa panoul de administrare.
           </CardDescription>
@@ -166,4 +170,12 @@ export default function AdminsPage() {
       </Card>
     </div>
   );
+}
+
+export default function AdminsPage() {
+    return (
+        <AuthGuard>
+            <AdminsPageContent />
+        </AuthGuard>
+    )
 }
