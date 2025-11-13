@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Route, Monitor, Menu, FileUp, FileDown } from "lucide-react";
+import { Route, Monitor, Menu, FileUp, FileDown, Users } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -49,6 +49,10 @@ export default function Header({ onImport, onExport }: HeaderProps) {
               <Route className="h-5 w-5" />
               Route Optimizer
             </Link>
+            <Link href="/admins" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Users className="h-5 w-5" />
+              Manage Admins
+            </Link>
           </nav>
         </SheetContent>
       </Sheet>
@@ -85,6 +89,12 @@ export default function Header({ onImport, onExport }: HeaderProps) {
           <Link href="/optimize">
             <Route className="mr-2 h-4 w-4" />
             Route Optimizer
+          </Link>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/admins">
+            <Users className="mr-2 h-4 w-4" />
+            Manage Admins
           </Link>
         </Button>
       </div>

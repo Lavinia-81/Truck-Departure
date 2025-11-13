@@ -69,10 +69,23 @@
         "scheduleNumber",
         "status"
       ]
+    },
+    "Admin": {
+      "title": "Admin",
+      "type": "object",
+      "description": "Represents an administrator's email address.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The email address of the admin user.",
+          "format": "email"
+        }
+      },
+      "required": ["email"]
     }
   },
   "auth": {
-    "providers": []
+    "providers": ["google.com"]
   },
   "firestore": {
     "/dispatchSchedules/{dispatchScheduleId}": {
@@ -80,6 +93,12 @@
         "$ref": "#/entities/DispatchSchedule"
       },
       "description": "Collection of dispatch schedule entries. Includes all details for each dispatch, such as carrier, destination, time, and status."
+    },
+    "/admins/{adminId}": {
+        "schema": {
+            "$ref": "#/entities/Admin"
+        },
+        "description": "Collection of admin user emails."
     }
   }
 }
