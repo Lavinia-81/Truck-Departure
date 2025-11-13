@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("dark", inter.variable)}>
+    <html lang="en" className={cn("light", inter.variable)}>
       <body className={"font-body antialiased"}>
         <FirebaseClientProvider>
           <div className="flex min-h-screen w-full flex-col">

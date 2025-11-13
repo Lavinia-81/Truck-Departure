@@ -13,19 +13,14 @@ let firestore: Firestore;
 // This function is leveraged by the FirebaseProvider to safely initialize
 // the Firebase app and services, and make them available to the rest of
 // the application.
-export function initializeFirebase(): {
+export function initializeFirebase(firebaseConfig: any): {
   firebaseApp: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
 } {
   if (getApps().length === 0) {
-    const firebaseConfigStr = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
-    if (!firebaseConfigStr) {
-        throw new Error("Missing NEXT_PUBLIC_FIREBASE_CONFIG environment variable");
-    }
-    const firebaseConfig = JSON.parse(firebaseConfigStr);
-    if (!firebaseConfig.apiKey) {
-        throw new Error("Invalid NEXT_PUBLIC_FIREBASE_CONFIG: apiKey is missing");
+     if (!firebaseConfig || !firebaseConfig.apiKey) {
+        throw new Error("Invalid Firebase configuration provided");
     }
     firebaseApp = initializeApp(firebaseConfig);
     auth = getAuth(firebaseApp);
