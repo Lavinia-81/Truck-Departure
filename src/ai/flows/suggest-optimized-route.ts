@@ -43,6 +43,7 @@ export async function suggestOptimizedRoute(
 
 const prompt = ai.definePrompt({
   name: 'suggestOptimizedRoutePrompt',
+  model: 'gemini-1.5-flash-preview',
   input: {schema: SuggestOptimizedRouteInputSchema},
   output: {schema: SuggestOptimizedRouteOutputSchema},
   prompt: `You are an AI-powered route optimization expert. Your task is to analyze the provided route details and traffic information to suggest the most efficient path.
@@ -70,10 +71,7 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
     outputSchema: SuggestOptimizedRouteOutputSchema,
   },
   async input => {
-    const {output} = await prompt({
-        input,
-        model: googleAI('gemini-1.5-flash-preview'),
-    });
+    const {output} = await prompt(input);
     return output!;
   }
 );
