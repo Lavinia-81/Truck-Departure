@@ -46,11 +46,17 @@ function RouteOptimizerPageContent() {
       setResult(response);
     } catch (e: any) {
       console.error(e);
-      if (e.message && e.message.includes('429')) {
-        setError("You have reached the API request limit. Please wait a minute before trying again or check your API key configuration.");
-      } else {
-        setError("Route optimization failed. Ensure you have configured the GEMINI_API_KEY in your environment variables and try again.");
+      let errorMessage = "An unexpected error occurred. Please check the server console for more details.";
+      if (e.message) {
+        if (e.message.includes('429')) {
+          errorMessage = "You have reached the API request limit. Please wait a minute before trying again or check your API key configuration.";
+        } else if (e.message.toLowerCase().includes('api key')) {
+          errorMessage = "Route optimization failed due to an API key issue. Ensure you have configured the GEMINI_API_KEY correctly in your .env file and that it is valid.";
+        } else {
+            errorMessage = `Route optimization failed: ${e.message}`;
+        }
       }
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +92,7 @@ function RouteOptimizerPageContent() {
             <p className="mt-4">Optimizing route...</p>
           </div>
         )}
-        {error && <p className="text-destructive">{error}</p>}
+        {error && <p className="text-destructive p-4 border border-destructive/50 rounded-md">{error}</p>}
         {result && (
           <Card className="w-full">
             <CardHeader>
