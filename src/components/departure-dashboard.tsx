@@ -150,35 +150,38 @@ export default function DepartureDashboard() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
-      setIsAuthenticating(false); // Finished initial auth check
+      setIsAuthenticating(false);
     });
     return () => unsubscribe();
   }, [auth]);
 
   useEffect(() => {
     if (!auth) return;
-
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          // User has just been redirected back from Google.
-          // onAuthStateChanged will handle setting the user.
-        } else {
-            // This is a normal page load, not a redirect result.
+    if (isAuthenticating) { // Only run this if we are expecting a redirect result
+        getRedirectResult(auth)
+        .then((result) => {
+            if (result) {
+                // User has been redirected back from Google.
+                // onAuthStateChanged will handle setting the user state.
+            }
             setIsAuthenticating(false);
-        }
-      })
-      .catch((error) => {
-        console.error("Login redirect failed:", error);
-        if (error.code === 'auth/unauthorized-domain') {
-            const domain = window.location.origin;
-            setLoginError(`The current domain (${domain}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`);
-        } else {
-            setLoginError(error.message || "An unknown error occurred during login.");
-        }
-        setIsAuthenticating(false);
-      });
-  }, [auth]);
+        })
+        .catch((error) => {
+            console.error("Login redirect failed:", error);
+            let errorMessage = "An unknown error occurred during login.";
+            if (error.code === 'auth/unauthorized-domain') {
+                 const authDomain = auth.config.authDomain;
+                 errorMessage = `Authorization error. Please ensure BOTH of the following are in your Firebase project's 'Authorized domains' list: \n1. The app domain: ${window.location.hostname}\n2. The Firebase auth domain: ${authDomain}`;
+            } else if (error.code === 'auth/popup-blocked') {
+                errorMessage = "The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again. Look for an icon in your address bar.";
+            } else {
+                errorMessage = error.message;
+            }
+            setLoginError(errorMessage);
+            setIsAuthenticating(false);
+        });
+    }
+  }, [auth, isAuthenticating]);
 
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -205,6 +208,7 @@ export default function DepartureDashboard() {
   const handleLogout = async () => {
     if (!auth) return;
     await firebaseSignOut(auth);
+    setUser(null);
   };
   
   const handleAddNew = () => {
