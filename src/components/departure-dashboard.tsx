@@ -28,7 +28,7 @@ import { Loader2, Package, Truck } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
 import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useFirestore, useAuth, useUser } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { ThemeToggle } from './theme-toggle';
@@ -669,7 +669,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    
-
-    
