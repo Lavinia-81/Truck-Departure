@@ -66,7 +66,6 @@ export function useCollection<T>(
         setError(null);
       },
       (err) => {
-        console.error(err);
         setError(err);
       }
     );
