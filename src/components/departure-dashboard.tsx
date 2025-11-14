@@ -5,8 +5,8 @@ import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
+import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut, Info } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -74,26 +74,29 @@ const carrierStyles: Record<string, CarrierStyle> = {
 function LoginScreen() {
     const auth = useAuth();
     const [isSigningIn, setIsSigningIn] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [authError, setAuthError] = useState<{title: string, description: string} | null>(null);
     const { toast } = useToast();
 
     const handleLogin = async () => {
         setIsSigningIn(true);
-        setErrorMessage(null);
+        setAuthError(null);
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
         } catch (error: any) {
             console.error("Login failed:", error);
+            let title = 'Login Failed';
             let description = error.message || 'An unexpected error occurred during login.';
+            
             if (error.code === 'auth/unauthorized-domain') {
-                 const currentDomain = window.location.origin;
-                 description = `The current domain (${currentDomain}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`;
-                 setErrorMessage(description);
+                const currentDomain = window.location.hostname;
+                title = 'Unauthorized Domain';
+                description = `The current domain (${currentDomain}) is not authorized. You must add it to the 'Authorized domains' list in your Firebase Authentication settings.`;
+                setAuthError({ title, description });
             } else {
               toast({
                   variant: 'destructive',
-                  title: 'Login Failed',
+                  title: title,
                   description: description,
               });
             }
@@ -101,11 +104,17 @@ function LoginScreen() {
             setIsSigningIn(false);
         }
     };
+    
+    // Get the current domain to display in the warning message.
+    const [currentHost, setCurrentHost] = useState('');
+    useEffect(() => {
+        setCurrentHost(window.location.hostname);
+    }, []);
 
     return (
-        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-            <Card className="max-w-md p-8 text-center">
-                 <CardHeader>
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Admin Dashboard</CardTitle>
                      <div className="flex justify-center pt-4">
                         <div className="bg-white p-2 rounded-md shadow-sm">
@@ -114,10 +123,10 @@ function LoginScreen() {
                             </div>
                         </div>
                     </div>
+                     <CardDescription className="pt-4">Please log in to manage truck departures.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="mb-6 text-muted-foreground">Please log in to manage truck departures.</p>
-                    <Button onClick={handleLogin} disabled={isSigningIn}>
+                    <Button onClick={handleLogin} disabled={isSigningIn} className="w-full">
                         {isSigningIn ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
@@ -125,15 +134,37 @@ function LoginScreen() {
                         )}
                         Login with Google
                     </Button>
-                    {errorMessage && (
-                        <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-4">
+                    {authError && (
+                        <div className="w-full rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                            <div className="flex items-start">
-                             <AlertTriangle className="mr-2 h-4 w-4 flex-shrink-0" />
-                             <p className="text-left">{errorMessage}</p>
+                             <AlertTriangle className="mr-3 h-5 w-5 flex-shrink-0" />
+                             <div>
+                                <p className="font-bold">{authError.title}</p>
+                                <p>{authError.description}</p>
+                             </div>
                            </div>
                         </div>
                     )}
-                </CardContent>
+                    <div className="w-full rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-300">
+                        <div className="flex items-start">
+                            <Info className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
+                            <div>
+                                <p className="font-bold">Important Configuration Step</p>
+                                <p>
+                                    To enable Google Login, you must add the current domain to your Firebase project's authorized domains.
+                                </p>
+                                <p className="mt-2 font-semibold">
+                                    Domain to add: <span className="font-mono bg-yellow-200/50 dark:bg-yellow-900/50 px-1 py-0.5 rounded">{currentHost || 'loading...'}</span>
+                                </p>
+                                <a href="https://console.firebase.google.com/u/0/project/_/authentication/settings" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-yellow-800 dark:text-yellow-200 underline">
+                                    Go to Firebase Auth Settings &rarr;
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </CardFooter>
             </Card>
         </div>
     );
@@ -686,5 +717,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    
