@@ -1,53 +1,79 @@
 'use server';
 
-import { z } from 'zod';
-import { ai } from '@/ai/genkit';
+/**
+ * @fileOverview A route optimization AI agent.
+ *
+ * - suggestOptimizedRoute - A function that handles the route optimization process.
+ * - SuggestOptimizedRouteInput - The input type for the suggestOptimizedRoute function.
+ * - SuggestOptimizedRouteOutput - The return type for the suggestOptimizedRoute function.
+ */
+import { definePrompt } from "@genkit-ai/ai";
 
-// Define input schema
+import {ai} from '@/ai/genkit';
+import {z} from 'genkit';
+
 const SuggestOptimizedRouteInputSchema = z.object({
-  currentLocation: z.string().describe('The starting point of the route'),
-  destination: z.string().describe('The final destination of the route'),
-  via: z.string().optional().describe('An optional stop between the start and destination'),
-  trafficData: z.string().optional().describe('A summary of current traffic conditions'),
+  destination: z.string().describe('The final destination of the route.'),
+  via: z.string().optional().describe('The first stop on the route, if applicable.'),
+  currentLocation: z.string().describe('The current location of the truck.'),
+  trafficData: z.string().optional().describe('Real-time traffic data, if available.'),
 });
+export type SuggestOptimizedRouteInput = z.infer<
+  typeof SuggestOptimizedRouteInputSchema
+>;
 
-export type SuggestOptimizedRouteInput = z.infer<typeof SuggestOptimizedRouteInputSchema>;
-
-// Define output schema
 const SuggestOptimizedRouteOutputSchema = z.object({
-  optimizedRoute: z.string().describe('The suggested best route, including major highways and cities.'),
-  estimatedTime: z.string().describe('The estimated travel time for the suggested route.'),
-  reasoning: z.string().describe('A brief explanation for why this route was chosen.'),
-  roadWarnings: z.string().describe('A summary of any potential road warnings, accidents, or closures.'),
-  warningLevel: z.enum(['none', 'moderate', 'severe']).describe('A classification of the severity of the road warnings.'),
+  optimizedRoute: z.string().describe('The suggested optimized route.'),
+  estimatedTime: z.string().describe('The estimated time of arrival for the optimized route.'),
+  reasoning: z
+    .string()
+    .describe('The reasoning behind the suggested route optimization.'),
+  roadWarnings: z.string().optional().describe('A summary of any warnings, accidents, or significant traffic issues on the suggested route. If there are no issues, this should state "No significant warnings."'),
+  warningLevel: z.enum(['none', 'moderate', 'severe']).describe('A classification of the warning severity. "none" for no issues, "moderate" for traffic or minor delays, "severe" for accidents or road closures.'),
 });
+export type SuggestOptimizedRouteOutput = z.infer<
+  typeof SuggestOptimizedRouteOutputSchema
+>;
 
-export type SuggestOptimizedRouteOutput = z.infer<typeof SuggestOptimizedRouteOutputSchema>;
+export async function suggestOptimizedRoute(
+  input: SuggestOptimizedRouteInput
+): Promise<SuggestOptimizedRouteOutput> {
+  return suggestOptimizedRouteFlow(input);
+}
 
-const optimizationPrompt = ai.definePrompt(
-  {
-    name: 'routeOptimizationPrompt',
-    inputSchema: SuggestOptimizedRouteInputSchema,
-    outputSchema: SuggestOptimizedRouteOutputSchema,
-    
-    prompt: `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver.
-Based on this information, provide the optimized route, estimated time, your reasoning, a summary of road warnings, and a warning level.
+const retryPrompt = async (
+  input: SuggestOptimizedRouteInput,
+  retries = 3,
+  delay = 1500
+): Promise<SuggestOptimizedRouteOutput> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Call the AI prompt; the SDK may return a string (JSON) or null.
+      const prompt = `Optimize a truck route with the following details:
+- Destination: ${input.destination}
+- Current Location: ${input.currentLocation}
+${input.via ? `- Via: ${input.via}` : ''}
+${input.trafficData ? `- Traffic Data: ${input.trafficData}` : ''}
+Please provide the optimized route, estimated time, reasoning, road warnings, and warning level.`;
+      const response = await ai.prompt(prompt)();
 
-Here are the details for the current trip:
-- Destination: {{destination}}
-- Current Location: {{currentLocation}}
-{{#if via}}- Via (Stop): {{via}}{{/if}}
-{{#if trafficData}}- Traffic Data: {{trafficData}}{{/if}}
-`,
-    
-    config: {
-      model: 'gemini-pro',
-      response: {
-        format: 'json'
-      },
-    },
-  },
-);
+      if (!response) {
+        throw new Error('Empty response from AI');
+      }
+
+      // Parse the JSON string response
+      return JSON.parse(response.text) as SuggestOptimizedRouteOutput;
+    } catch (error: any) {
+      if (error.message?.includes('503') && i < retries - 1) {
+        await new Promise(res => setTimeout(res, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error('Failed to get a valid response from AI after retries');
+};
 
 const suggestOptimizedRouteFlow = ai.defineFlow(
   {
@@ -55,28 +81,8 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
     inputSchema: SuggestOptimizedRouteInputSchema,
     outputSchema: SuggestOptimizedRouteOutputSchema,
   },
-  async (input) => {
-    const response = await optimizationPrompt.generate({
-        input: input,
-    });
-    
-    const output = response.output();
-    if (!output) {
-      throw new Error('AI failed to generate a response.');
-    }
-    return output;
+  async input => {
+    const output = await retryPrompt(input);
+    return output!;
   }
 );
-
-
-export async function suggestOptimizedRoute(
-  input: SuggestOptimizedRouteInput
-): Promise<SuggestOptimizedRouteOutput> {
-  try {
-    return await suggestOptimizedRouteFlow(input);
-  } catch (e: any) {
-    console.error('Genkit execution failed:', e);
-    // Re-throw a more user-friendly error to be caught by the client-side caller.
-    throw new Error(`Route optimization failed: ${e.message}`);
-  }
-}
