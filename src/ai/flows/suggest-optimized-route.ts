@@ -42,7 +42,7 @@ export async function suggestOptimizedRoute(
   input: SuggestOptimizedRouteInput
 ): Promise<SuggestOptimizedRouteOutput> {
   // Initialize Genkit and the Google AI plugin directly within the server action.
-  // This ensures a clean, isolated configuration for each execution.
+  // This ensures a clean, isolated configuration for each execution with the correct API key.
   const ai = genkit({
     plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
   });
@@ -59,7 +59,7 @@ Based on this information, provide the optimized route, estimated time, your rea
 
   try {
     const response = await ai.generate({
-      model: 'gemini-pro', // Using the stable 'gemini-pro' model.
+      model: 'gemini-pro',
       prompt: promptText,
       config: {
         response: {
