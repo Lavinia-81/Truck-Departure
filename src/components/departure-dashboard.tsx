@@ -101,11 +101,15 @@ function LoginScreen() {
             
             if (error.code === 'auth/unauthorized-domain') {
                 title = 'Unauthorized Domain';
-                description = `The current domain (${currentHost}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`;
+                description = `The current domain (${window.location.hostname}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`;
             } else if (error.code === 'auth/popup-blocked') {
                 title = 'Pop-up Blocked';
                 description = 'The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again. Look for an icon in your address bar.';
+            } else if (error.code === 'auth/api-key-not-valid') {
+                title = 'Invalid API Key';
+                description = 'The API key for Firebase is not valid. Please ensure you have the correct key in your .env.local file.';
             }
+
 
             setAuthError({ title, description });
         } finally {
@@ -153,16 +157,18 @@ function LoginScreen() {
                         <div className="flex items-start">
                             <Info className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
                             <div>
-                                <p className="font-bold">Important Configuration Step</p>
+                                <p className="font-bold">Important Configuration Steps</p>
                                 <p>
-                                    To enable Google Login, you must add the current domain to your Firebase project's authorized domains.
+                                    To enable Google Login, you must:
                                 </p>
+                                <ul className="list-disc pl-5 mt-1 space-y-1">
+                                    <li>Add the current domain to your Firebase project's <a href="https://console.firebase.google.com/u/0/project/_/authentication/settings" target="_blank" rel="noopener noreferrer" className="underline">authorized domains</a>.</li>
+                                    <li>Ensure pop-ups are allowed for this site in your browser.</li>
+                                    <li>Make sure your `GEMINI_API_KEY` in `.env.local` is correct.</li>
+                                </ul>
                                 <p className="mt-2 font-semibold">
                                     Current domain: <span className="font-mono bg-yellow-200/50 dark:bg-yellow-900/50 px-1 py-0.5 rounded">{currentHost || 'loading...'}</span>
                                 </p>
-                                <a href="https://console.firebase.google.com/u/0/project/_/authentication/settings" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-yellow-800 dark:text-yellow-200 underline">
-                                    Go to Firebase Auth Settings &rarr;
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -446,7 +452,7 @@ export default function DepartureDashboard() {
             collectionTime: collectionTime.toISOString(),
             bayDoor: (row['Bay'] && row['Bay'] !== 'N/A') ? Number(row['Bay']) : null,
             sealNumber: (row['Seal No.'] === 'N/A' || !row['Seal No.']) ? '' : getTrimmedString(row['Seal No.']),
-            driverName: (row['Driver'] === 'N/A' || !row['Driver']) ? '' : getTrimmedString(row['Driver']),
+            driverName: (row['Driver'] === 'NA' || !row['Driver']) ? '' : getTrimmedString(row['Driver']),
             scheduleNumber: scheduleNumber,
             status: (getTrimmedString(row['Status']) as Status) || 'Waiting',
           };
