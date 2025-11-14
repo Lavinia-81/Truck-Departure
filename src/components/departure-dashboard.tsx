@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut, Info, ShieldAlert } from 'lucide-react';
+import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -24,17 +24,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Header from './header';
-import { Loader2, Package, Truck, AlertTriangle } from 'lucide-react';
+import { Loader2, Package, Truck, Terminal } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
 import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useFirestore, useAuth, useUser } from '@/firebase';
+import { useCollection, useFirestore, useAuth } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { ThemeToggle } from './theme-toggle';
-import { GoogleAuthProvider, signInWithPopup, signOut, User } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
+
+// --- Lista de Admini ---
+// Adăugați aici email-urile care au permisiunea de a accesa panoul.
+const ADMIN_EMAILS = ['admin@example.com', 'your-email@gmail.com'];
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -71,155 +76,79 @@ const carrierStyles: Record<string, CarrierStyle> = {
     },
 };
 
-// --- Lista de Admini ---
-// Adăugați aici email-urile care au permisiunea de a accesa panoul.
-const ADMIN_EMAILS = ['maria-lavinia.dusca@theverygroup.com', 'duscalavinia2@gmail.com'];
-
-
-function LoginScreen() {
-    const auth = useAuth();
-    const [isSigningIn, setIsSigningIn] = useState(false);
-    const [authError, setAuthError] = useState<{title: string, description: string} | null>(null);
-    const [currentHost, setCurrentHost] = useState('');
-    
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setCurrentHost(window.location.hostname);
-        }
-    }, []);
-
-    const handleLogin = async () => {
-        setIsSigningIn(true);
-        setAuthError(null);
-        const provider = new GoogleAuthProvider();
-        try {
-            await signInWithPopup(auth, provider);
-        } catch (error: any) {
-            console.error("Login failed:", error);
-            let title = 'Login Failed';
-            let description = error.message || 'An unexpected error occurred during login.';
-            
-            if (error.code === 'auth/unauthorized-domain') {
-                title = 'Unauthorized Domain';
-                description = `The current domain (${window.location.hostname}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`;
-            } else if (error.code === 'auth/popup-blocked') {
-                title = 'Pop-up Blocked';
-                description = 'The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again. Look for an icon in your address bar.';
-            } else if (error.code === 'auth/api-key-not-valid') {
-                title = 'Invalid API Key';
-                description = 'The API key for Firebase is not valid. Please ensure you have the correct key in your .env.local file.';
-            }
-
-
-            setAuthError({ title, description });
-        } finally {
-            setIsSigningIn(false);
-        }
-    };
-
-    return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-md">
-                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Admin Dashboard</CardTitle>
-                     <div className="flex justify-center pt-4">
-                        <div className="bg-white p-2 rounded-md shadow-sm">
-                            <div className="w-[120px] h-auto">
-                                <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={150} height={58} className="h-auto w-full" />
-                            </div>
-                        </div>
-                    </div>
-                     <CardDescription className="pt-4">Please log in to manage truck departures.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={handleLogin} disabled={isSigningIn} className="w-full">
-                        {isSigningIn ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <LogIn className="mr-2 h-4 w-4" />
-                        )}
-                        Login with Google
-                    </Button>
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-4">
-                    {authError && (
-                        <div className="w-full rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                           <div className="flex items-start">
-                             <AlertTriangle className="mr-3 h-5 w-5 flex-shrink-0" />
-                             <div>
-                                <p className="font-bold">{authError.title}</p>
-                                <p>{authError.description}</p>
-                             </div>
-                           </div>
-                        </div>
-                    )}
-                     <div className="w-full rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-300">
-                        <div className="flex items-start">
-                            <Info className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
-                            <div>
-                                <p className="font-bold">Important Configuration Steps</p>
-                                <p>
-                                    To enable Google Login, you must:
-                                </p>
-                                <ul className="list-disc pl-5 mt-1 space-y-1">
-                                    <li>Add the current domain to your Firebase project's <a href="https://console.firebase.google.com/u/0/project/_/authentication/settings" target="_blank" rel="noopener noreferrer" className="underline">authorized domains</a>.</li>
-                                    <li>Ensure pop-ups are allowed for this site in your browser.</li>
-                                    <li>Make sure your `GEMINI_API_KEY` in `.env.local` is correct.</li>
-                                </ul>
-                                <p className="mt-2 font-semibold">
-                                    Current domain: <span className="font-mono bg-yellow-200/50 dark:bg-yellow-900/50 px-1 py-0.5 rounded">{currentHost || 'loading...'}</span>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </CardFooter>
-            </Card>
-        </div>
-    );
-}
-
-function AccessDeniedScreen({ user, onLogout }: { user: User, onLogout: () => void }) {
-  return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-            <ShieldAlert className="h-6 w-6 text-destructive" />
-          </div>
-          <CardTitle className="mt-4 text-2xl">Access Denied</CardTitle>
-          <CardDescription>
-            Your account does not have permission to access this admin panel.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            You are logged in as <span className="font-semibold">{user.displayName}</span> ({user.email}).
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Please contact the administrator if you believe this is an error.
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={onLogout} variant="outline" className="w-full">
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
-        </CardFooter>
-      </Card>
+const LoginScreen = ({ onLogin, error }: { onLogin: () => void, error: string | null }) => (
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm">
+            <CardHeader>
+                <CardTitle>Admin Dashboard</CardTitle>
+                <CardDescription>Please log in to manage departures.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+                 {error && (
+                    <Alert variant="destructive">
+                        <Terminal className="h-4 w-4" />
+                        <AlertTitle>Login Error</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
+                 <Button onClick={onLogin}>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Login with Google
+                </Button>
+            </CardContent>
+            <CardFooter>
+                 <p className="text-xs text-muted-foreground">
+                    Access is restricted to authorized personnel only. If you are having trouble logging in, please check if pop-ups are allowed and if the current domain is authorized in Firebase.
+                 </p>
+            </CardFooter>
+        </Card>
     </div>
-  );
-}
+);
 
+const AccessDeniedScreen = ({ user, onLogout }: { user: User, onLogout: () => void }) => (
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm text-center">
+            <CardHeader>
+                <CardTitle>Access Denied</CardTitle>
+                <CardDescription>
+                    The email <span className="font-semibold">{user.email}</span> is not authorized to access this dashboard.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground">
+                    Please contact the administrator if you believe this is an error.
+                </p>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={onLogout} variant="outline" className="w-full">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
+            </CardFooter>
+        </Card>
+    </div>
+);
 
 export default function DepartureDashboard() {
   const auth = useAuth();
-  const { user, isLoading: isLoadingUser } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  
   const firestore = useFirestore();
-  
-  const isUserAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
-  
-  const departuresCollection = firestore && user && isUserAdmin ? collection(firestore, 'dispatchSchedules') : null;
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCollection);
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
+    (firestore && user && ADMIN_EMAILS.includes(user.email || '')) ? collection(firestore, 'dispatchSchedules') : null
+  );
+
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
@@ -233,6 +162,30 @@ export default function DepartureDashboard() {
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogin = async () => {
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
+    try {
+        setLoginError(null);
+        await signInWithPopup(auth, provider);
+    } catch (error: any) {
+        console.error("Login failed:", error);
+        if (error.code === 'auth/popup-blocked') {
+            setLoginError("The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again. Look for an icon in your address bar.");
+        } else if (error.code === 'auth/unauthorized-domain') {
+            const domain = window.location.origin;
+            setLoginError(`The current domain (${domain}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`);
+        } else {
+            setLoginError(error.message || "An unknown error occurred during login.");
+        }
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    await firebaseSignOut(auth);
+  };
   
   const handleAddNew = () => {
     setEditingDeparture(null);
@@ -265,12 +218,12 @@ export default function DepartureDashboard() {
     } catch (e: any) {
       console.error(e);
       let description = "Could not retrieve traffic warnings. Please try again.";
-      if (e.message?.includes('429')) {
-        description = "You have reached the API request limit. Please wait one minute before trying again.";
+       if (e.message?.includes('429')) {
+          description = "You have reached the API request limit. Please wait one minute before trying again.";
       } else if (e.message?.toLowerCase().includes('api key') || e.message?.toLowerCase().includes('permission')) {
-        description = "The API key for the AI service is not valid or not configured. Check the .env.local file.";
+          description = "The API key for the AI service is not valid or not configured. Check the .env.local file.";
       } else if (e.message?.includes('NOT_FOUND')) {
-        description = "The AI model was not found. This might be a configuration issue. Please contact support."
+          description = "The AI model was not found. This might be a configuration issue. Please contact support."
       }
       toast({
         variant: "destructive",
@@ -527,34 +480,24 @@ export default function DepartureDashboard() {
     setIsClearDialogOpen(false);
   };
   
-  const handleLogout = async () => {
-    await signOut(auth);
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
-  };
-
-
   const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
 
-  if (isLoadingUser) {
+  if (isAuthLoading || (user && !departures)) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Checking authentication...</p>
+            <p className="mt-4 text-muted-foreground">Loading data...</p>
         </div>
     );
   }
 
   if (!user) {
-    return <LoginScreen />;
-  }
-  
-  if (!isUserAdmin) {
-    return <AccessDeniedScreen user={user} onLogout={handleLogout} />;
+    return <LoginScreen onLogin={handleLogin} error={loginError} />;
   }
 
+  if (!ADMIN_EMAILS.includes(user.email || '')) {
+    return <AccessDeniedScreen user={user} onLogout={handleLogout} />;
+  }
 
   return (
     <TooltipProvider>
@@ -574,11 +517,22 @@ export default function DepartureDashboard() {
                     </div>
                 </div>
               </div>
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-4">
                   <Button onClick={handleAddNew}>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Add Departure
                   </Button>
+                  {user && (
+                    <div className="flex items-center gap-2">
+                       <Avatar className="h-8 w-8">
+                         <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                         <AvatarFallback>{user.displayName?.charAt(0) || 'A'}</AvatarFallback>
+                       </Avatar>
+                       <Button variant="outline" size="sm" onClick={handleLogout}>
+                         <LogOut className="mr-2 h-4 w-4" /> Logout
+                       </Button>
+                    </div>
+                  )}
               </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col overflow-hidden">
@@ -696,18 +650,6 @@ export default function DepartureDashboard() {
                 </div>
               ))}
               <div className="ml-auto flex items-center gap-4 mt-2 md:mt-0">
-                  {user && (
-                    <div className="flex items-center gap-2">
-                       <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
-                            <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      <Button variant="outline" size="sm" onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
-                      </Button>
-                    </div>
-                  )}
                 <ThemeToggle />
                 <Button size="sm" variant="destructive" onClick={() => setIsClearDialogOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
