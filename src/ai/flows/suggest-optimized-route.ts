@@ -43,7 +43,7 @@ export async function suggestOptimizedRoute(
 
 const prompt = ai.definePrompt({
   name: 'suggestOptimizedRoutePrompt',
-  model: 'gemini-pro',
+  model: 'googleai/gemini-pro',
   input: {schema: SuggestOptimizedRouteInputSchema},
   output: {schema: SuggestOptimizedRouteOutputSchema},
   prompt: `You are an AI-powered route optimization expert. Your task is to analyze the provided route details and traffic information to suggest the most efficient path.
