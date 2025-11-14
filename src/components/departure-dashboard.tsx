@@ -83,10 +83,15 @@ function LoginScreen() {
             await signInWithPopup(auth, provider);
         } catch (error: any) {
             console.error("Login failed:", error);
+            let description = error.message || 'An unexpected error occurred during login.';
+            if (error.code === 'auth/unauthorized-domain') {
+                 const currentDomain = window.location.origin;
+                 description = `The current domain (${currentDomain}) is not authorized. Please add it to your Firebase project's authorized domains.`;
+            }
             toast({
                 variant: 'destructive',
                 title: 'Login Failed',
-                description: error.message || 'An unexpected error occurred during login.',
+                description: description,
             });
         } finally {
             setIsSigningIn(false);
