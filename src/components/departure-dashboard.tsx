@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Header from './header';
-import { Loader2, Package, Truck } from 'lucide-react';
+import { Loader2, Package, Truck, AlertTriangle } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
 import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
@@ -74,10 +74,12 @@ const carrierStyles: Record<string, CarrierStyle> = {
 function LoginScreen() {
     const auth = useAuth();
     const [isSigningIn, setIsSigningIn] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const { toast } = useToast();
 
     const handleLogin = async () => {
         setIsSigningIn(true);
+        setErrorMessage(null);
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
@@ -86,13 +88,15 @@ function LoginScreen() {
             let description = error.message || 'An unexpected error occurred during login.';
             if (error.code === 'auth/unauthorized-domain') {
                  const currentDomain = window.location.origin;
-                 description = `The current domain (${currentDomain}) is not authorized. Please add it to your Firebase project's authorized domains.`;
+                 description = `The current domain (${currentDomain}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`;
+                 setErrorMessage(description);
+            } else {
+              toast({
+                  variant: 'destructive',
+                  title: 'Login Failed',
+                  description: description,
+              });
             }
-            toast({
-                variant: 'destructive',
-                title: 'Login Failed',
-                description: description,
-            });
         } finally {
             setIsSigningIn(false);
         }
@@ -121,6 +125,14 @@ function LoginScreen() {
                         )}
                         Login with Google
                     </Button>
+                    {errorMessage && (
+                        <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                           <div className="flex items-start">
+                             <AlertTriangle className="mr-2 h-4 w-4 flex-shrink-0" />
+                             <p className="text-left">{errorMessage}</p>
+                           </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -674,3 +686,5 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
+
+    
