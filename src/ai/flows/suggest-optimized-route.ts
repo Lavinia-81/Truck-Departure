@@ -44,6 +44,7 @@ const prompt = ai.definePrompt({
   name: 'suggestOptimizedRoutePrompt',
   input: {schema: SuggestOptimizedRouteInputSchema},
   output: {schema: SuggestOptimizedRouteOutputSchema},
+  model: 'gemini-1.5-flash-latest',
   prompt: `You are an AI-powered route optimization expert. Your task is to analyze the provided route details and traffic information to suggest the most efficient path.
 
 Your primary focus is to identify and report any significant road warnings. This includes accidents, road closures, heavy congestion, or any other event that could cause major delays.
