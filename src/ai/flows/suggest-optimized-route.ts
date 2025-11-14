@@ -37,31 +37,56 @@ export type SuggestOptimizedRouteOutput = z.infer<
 export async function suggestOptimizedRoute(
   input: SuggestOptimizedRouteInput
 ): Promise<SuggestOptimizedRouteOutput> {
-  return await suggestOptimizedRouteFlow(input);
+  return suggestOptimizedRouteFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'suggestOptimizedRoutePrompt',
-  input: {schema: SuggestOptimizedRouteInputSchema},
-  output: {schema: SuggestOptimizedRouteOutputSchema},
-  model: 'gemini-1.5-flash-latest',
-  prompt: `You are an AI-powered route optimization expert. Your task is to analyze the provided route details and traffic information to suggest the most efficient path.
+const retryPrompt = async (
+  input: SuggestOptimizedRouteInput,
+  retries = 3,
+  delay = 1500
+): Promise<SuggestOptimizedRouteOutput> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const promptText = `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver.
+You MUST reply with a valid JSON object that conforms to this schema:
+${JSON.stringify(SuggestOptimizedRouteOutputSchema.jsonSchema())}
 
-Your primary focus is to identify and report any significant road warnings. This includes accidents, road closures, heavy congestion, or any other event that could cause major delays.
+Here are the details for the current trip:
+- Destination: ${input.destination}
+- Current Location: ${input.currentLocation}
+${input.via ? `- Via (first stop): ${input.via}` : ''}
+${input.trafficData ? `- Current Traffic Information: ${input.trafficData}` : ''}
 
-Destination: {{{destination}}}
-Via (First Stop): {{{via}}}
-Current Location: {{{currentLocation}}}
-Traffic Data: {{{trafficData}}}
+Based on this information, provide the optimized route, estimated time, your reasoning, a summary of road warnings, and a warning level.`;
+      
+      const response = await ai.generate({
+          model: 'gemini-1.5-flash-latest',
+          prompt: promptText,
+          config: {
+              response: {
+                  format: 'json',
+                  schema: SuggestOptimizedRouteOutputSchema,
+              }
+          }
+      });
+      
+      const output = response.output();
+      if (!output) {
+        throw new Error('Empty response from AI');
+      }
 
-Based on this, provide:
-1.  An optimized route.
-2.  An estimated time of arrival.
-3.  A summary of your reasoning.
-4.  A clear and concise summary of all major road warnings. If there are no issues, explicitly state "No significant warnings."
-5.  A 'warningLevel'. Use 'severe' for major issues like accidents or closures. Use 'moderate' for heavy traffic or minor works. Use 'none' if there are no significant issues.
-`,
-});
+      return output;
+    } catch (error: any) {
+      if (error.message?.includes('503') && i < retries - 1) {
+        await new Promise(res => setTimeout(res, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error('Failed to get a valid response from AI after retries');
+};
 
 const suggestOptimizedRouteFlow = ai.defineFlow(
   {
@@ -70,7 +95,7 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
     outputSchema: SuggestOptimizedRouteOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const output = await retryPrompt(input);
+    return output;
   }
 );
