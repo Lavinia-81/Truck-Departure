@@ -5,21 +5,21 @@ import {
   Firestore,
   getFirestore,
 } from 'firebase/firestore';
+import { firebaseConfig } from './config';
 
 let firebaseApp: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
 
-export function initializeFirebase(firebaseConfig: any): {
+export function initializeFirebase(): {
   firebaseApp: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
 } {
-  if (!firebaseConfig.apiKey) {
-    throw new Error('Firebase configuration is invalid. apiKey is missing.');
-  }
-
   if (getApps().length === 0) {
+    if (!firebaseConfig.apiKey) {
+      throw new Error('Firebase configuration is invalid. apiKey is missing.');
+    }
     firebaseApp = initializeApp(firebaseConfig);
     auth = getAuth(firebaseApp);
     firestore = getFirestore(firebaseApp);
@@ -30,3 +30,4 @@ export function initializeFirebase(firebaseConfig: any): {
 export * from './provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
+export * from './auth/use-user';

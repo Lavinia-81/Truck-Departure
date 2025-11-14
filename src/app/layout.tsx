@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { AuthProvider } from '@/components/auth-provider';
 
 export const metadata: Metadata = {
   title: 'Truck Departure Dashboard',
@@ -24,12 +25,14 @@ export default function RootLayout({
     <html lang="en" className={cn("light", inter.variable)}>
       <body className={"font-body antialiased"}>
         <FirebaseClientProvider>
-          <div className="flex min-h-screen w-full flex-col">
-            <main className="flex flex-1 flex-col">
-              {children}
-            </main>
-          </div>
-          <Toaster />
+          <AuthProvider>
+            <div className="flex min-h-screen w-full flex-col">
+              <main className="flex flex-1 flex-col">
+                {children}
+              </main>
+            </div>
+            <Toaster />
+          </AuthProvider>
         </FirebaseClientProvider>
       </body>
     </html>

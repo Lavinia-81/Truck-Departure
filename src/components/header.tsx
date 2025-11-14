@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Route, Monitor, Menu, FileUp, FileDown } from "lucide-react";
+import { Route, Monitor, Menu, FileUp, FileDown, LogOut } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -13,10 +13,58 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "./ui/separator";
+import { useAuthContext } from "./auth-provider";
+import { useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 interface HeaderProps {
     onImport: () => void;
     onExport: () => void;
+}
+
+function UserNav() {
+    const { user } = useAuthContext();
+    const auth = useAuth();
+
+    if (!user) {
+        return null;
+    }
+
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User"} />
+                        <AvatarFallback>{user.displayName?.[0] || user.email?.[0]}</AvatarFallback>
+                    </Avatar>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 }
 
 export default function Header({ onImport, onExport }: HeaderProps) {
@@ -90,6 +138,9 @@ export default function Header({ onImport, onExport }: HeaderProps) {
           </Link>
         </Button>
       </div>
+       <div className="ml-4">
+          <UserNav />
+        </div>
     </header>
   );
 }
