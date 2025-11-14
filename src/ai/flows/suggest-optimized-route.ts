@@ -40,50 +40,29 @@ export async function suggestOptimizedRoute(
   return suggestOptimizedRouteFlow(input);
 }
 
-const retryPrompt = async (
-  input: SuggestOptimizedRouteInput,
-  retries = 3,
-  delay = 1500
-): Promise<SuggestOptimizedRouteOutput> => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const promptText = `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver.
+
+const routeOptimizationPrompt = ai.definePrompt(
+  {
+    name: 'routeOptimizationPrompt',
+    input: { schema: SuggestOptimizedRouteInputSchema },
+    output: { schema: SuggestOptimizedRouteOutputSchema },
+    prompt: `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver.
 
 Here are the details for the current trip:
-- Destination: ${input.destination}
-- Current Location: ${input.currentLocation}
-${input.via ? `- Via (first stop): ${input.via}` : ''}
-${input.trafficData ? `- Current Traffic Information: ${input.trafficData}` : ''}
+- Destination: {{{destination}}}
+- Current Location: {{{currentLocation}}}
+{{#if via}}- Via (first stop): {{{via}}}{{/if}}
+{{#if trafficData}}- Current Traffic Information: {{{trafficData}}}{{/if}}
 
-Based on this information, provide the optimized route, estimated time, your reasoning, a summary of road warnings, and a warning level.`;
-      
-      const response = await ai.generate({
-          prompt: promptText,
-          config: {
-              response: {
-                  format: 'json',
-                  schema: SuggestOptimizedRouteOutputSchema,
-              }
-          }
-      });
-      
-      const output = response.output();
-      if (!output) {
-        throw new Error('Empty response from AI');
-      }
-
-      return output;
-    } catch (error: any) {
-      if (error.message?.includes('503') && i < retries - 1) {
-        await new Promise(res => setTimeout(res, delay));
-      } else {
-        throw error;
-      }
+Based on this information, provide the optimized route, estimated time, your reasoning, a summary of road warnings, and a warning level.`,
+    config: {
+        response: {
+            format: 'json',
+        }
     }
-  }
+  },
+);
 
-  throw new Error('Failed to get a valid response from AI after retries');
-};
 
 const suggestOptimizedRouteFlow = ai.defineFlow(
   {
@@ -92,7 +71,17 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
     outputSchema: SuggestOptimizedRouteOutputSchema,
   },
   async input => {
-    const output = await retryPrompt(input);
-    return output;
+    // A simple retry mechanism can be added here if needed, but for now, we'll keep it direct.
+    try {
+        const { output } = await routeOptimizationPrompt(input);
+        if (!output) {
+            throw new Error('AI returned an empty response.');
+        }
+        return output;
+    } catch (e: any) {
+        console.error('Genkit flow failed:', e);
+        // Re-throw the error to be caught by the client-side caller
+        throw new Error(`Route optimization failed: ${e.message}`);
+    }
   }
 );
