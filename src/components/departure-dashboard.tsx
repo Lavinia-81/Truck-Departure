@@ -35,11 +35,11 @@ import { ThemeToggle } from './theme-toggle';
 
 
 const statusColors: Record<Status, string> = {
-  Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
-  Loading: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
-  Waiting: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800',
-  Cancelled: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800',
-  Delayed: 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
+  Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
+  Loading: 'bg-fuchsia-200 text-fuchsia-800 border-fuchsia-300 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
+  Waiting: 'bg-blue-200 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800',
+  Cancelled: 'bg-red-200 text-red-800 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800',
+  Delayed: 'bg-pink-200 text-pink-800 border-pink-300 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
 };
 
 interface CarrierStyle {
@@ -391,7 +391,7 @@ export default function DepartureDashboard() {
           onExport={handleExport}
         />
         <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
-          <Card className="flex-1 flex flex-col overflow-hidden">
+          <Card className="flex-1 flex flex-col overflow-hidden bg-card">
             <CardHeader className="flex flex-row items-center justify-between gap-2 md:gap-4">
                <div className="flex items-center gap-4">
                 <CardTitle>Departures</CardTitle>
