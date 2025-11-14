@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route } from 'lucide-react';
+import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -29,9 +29,11 @@ import { STATUSES } from '@/lib/types';
 import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useAuth, useUser } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { ThemeToggle } from './theme-toggle';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 
 const statusColors: Record<Status, string> = {
@@ -69,10 +71,65 @@ const carrierStyles: Record<string, CarrierStyle> = {
     },
 };
 
+function LoginScreen() {
+    const auth = useAuth();
+    const [isSigningIn, setIsSigningIn] = useState(false);
+    const { toast } = useToast();
+
+    const handleLogin = async () => {
+        setIsSigningIn(true);
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error: any) {
+            console.error("Login failed:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: error.message || 'An unexpected error occurred during login.',
+            });
+        } finally {
+            setIsSigningIn(false);
+        }
+    };
+
+    return (
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+            <Card className="max-w-md p-8 text-center">
+                 <CardHeader>
+                    <CardTitle className="text-2xl">Admin Dashboard</CardTitle>
+                     <div className="flex justify-center pt-4">
+                        <div className="bg-white p-2 rounded-md shadow-sm">
+                            <div className="w-[120px] h-auto">
+                                <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={150} height={58} className="h-auto w-full" />
+                            </div>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <p className="mb-6 text-muted-foreground">Please log in to manage truck departures.</p>
+                    <Button onClick={handleLogin} disabled={isSigningIn}>
+                        {isSigningIn ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <LogIn className="mr-2 h-4 w-4" />
+                        )}
+                        Login with Google
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 
 export default function DepartureDashboard() {
+  const auth = useAuth();
+  const { user, isLoading: isLoadingUser } = useUser();
   const firestore = useFirestore();
-  const departuresCollection = firestore ? collection(firestore, 'dispatchSchedules') : null;
+  
+  // Conditionally set the collection path only if the user is logged in
+  const departuresCollection = firestore && user ? collection(firestore, 'dispatchSchedules') : null;
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCollection);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -380,8 +437,31 @@ export default function DepartureDashboard() {
     
     setIsClearDialogOpen(false);
   };
+  
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
+  };
+
 
   const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
+
+  if (isLoadingUser) {
+    return (
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Checking authentication...</p>
+        </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
+
 
   return (
     <TooltipProvider>
@@ -523,6 +603,18 @@ export default function DepartureDashboard() {
                 </div>
               ))}
               <div className="ml-auto flex items-center gap-4 mt-2 md:mt-0">
+                  {user && (
+                    <div className="flex items-center gap-2">
+                       <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+                            <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                      <Button variant="outline" size="sm" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                      </Button>
+                    </div>
+                  )}
                 <ThemeToggle />
                 <Button size="sm" variant="destructive" onClick={() => setIsClearDialogOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -577,3 +669,7 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
+
+    
+
+    
