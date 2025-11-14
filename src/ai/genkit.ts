@@ -1,18 +1,15 @@
+/**
+ * @fileOverview Initializes the Genkit AI instance.
+ */
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
-import {config} from 'dotenv';
-
-config({path: '.env.local'});
-
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-if (!apiKey) {
-  console.warn(
-    'GEMINI_API_KEY is not set in .env.local file. AI features will not be available.'
-  );
-}
-
-const googleAiPlugin = googleAI(apiKey ? {apiKey} : undefined);
 
 export const ai = genkit({
-  plugins: [googleAiPlugin],
+  plugins: [
+    googleAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    }),
+  ],
+  logLevel: 'debug',
+  enableTracingAndMetrics: true,
 });
