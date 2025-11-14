@@ -38,8 +38,7 @@ export type SuggestOptimizedRouteOutput = z.infer<
 export async function suggestOptimizedRoute(
   input: SuggestOptimizedRouteInput
 ): Promise<SuggestOptimizedRouteOutput> {
-  const result = await suggestOptimizedRouteFlow(input);
-  return result;
+  return await suggestOptimizedRouteFlow(input);
 }
 
 const prompt = ai.definePrompt({
