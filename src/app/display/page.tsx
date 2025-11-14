@@ -19,9 +19,9 @@ import { collection } from 'firebase/firestore';
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
   Loading: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
-  Waiting: 'bg-blue-800 text-white border-blue-900 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800',
-  Cancelled: 'bg-red-500 text-red-50 border-red-600 dark:bg-red-800/80 dark:text-red-100 dark:border-red-700',
-  Delayed: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
+  Waiting: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800',
+  Cancelled: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-800/80 dark:text-red-100 dark:border-red-700',
+  Delayed: 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
 };
 
 interface CarrierStyle {
@@ -60,7 +60,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 export default function DisplayPage() {
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    collection(firestore, 'dispatchSchedules')
+    firestore ? collection(firestore, 'dispatchSchedules') : null
   );
 
   const tableContainerRef = useRef<HTMLDivElement>(null);

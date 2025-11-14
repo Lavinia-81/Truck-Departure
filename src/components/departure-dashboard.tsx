@@ -39,7 +39,7 @@ const statusColors: Record<Status, string> = {
   Loading: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
   Waiting: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800',
   Cancelled: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800',
-  Delayed: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
+  Delayed: 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
 };
 
 interface CarrierStyle {
