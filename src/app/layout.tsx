@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'Truck Departure Dashboard',
@@ -21,16 +22,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("light", inter.variable)}>
+    <html lang="en" className={cn(inter.variable)} suppressHydrationWarning>
       <body className={"font-body antialiased"}>
-        <FirebaseClientProvider>
-            <div className="flex min-h-screen w-full flex-col">
-              <main className="flex flex-1 flex-col">
-                {children}
-              </main>
-            </div>
-            <Toaster />
-        </FirebaseClientProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <FirebaseClientProvider>
+                <div className="flex min-h-screen w-full flex-col">
+                  <main className="flex flex-1 flex-col">
+                    {children}
+                  </main>
+                </div>
+                <Toaster />
+            </FirebaseClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
