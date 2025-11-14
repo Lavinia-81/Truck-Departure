@@ -4,6 +4,7 @@
 // that only these users can write to the database.
 
 export const ADMIN_EMAILS = [
-  'admin@example.com',
+  'duscalavinia2@gmail.com',
+  'maria-lavinia.dusca@theverygroup.com'
   // 'another.admin@example.com',
 ];

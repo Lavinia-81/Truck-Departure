@@ -5,6 +5,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { firebaseConfig } from './config';
 
 type FirebaseContextState = {
   firebaseApp: FirebaseApp;
@@ -23,6 +24,10 @@ export function FirebaseClientProvider({
 
   useEffect(() => {
     try {
+      // Basic check if the config looks valid before initializing
+      if (!firebaseConfig || !firebaseConfig.apiKey) {
+        throw new Error("Firebase configuration is not available. Please check your setup.");
+      }
       const context = initializeFirebase();
       setFirebaseContext(context);
     } catch (e: any) {

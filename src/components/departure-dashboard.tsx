@@ -53,11 +53,6 @@ const carrierStyles: Record<string, CarrierStyle> = {
       className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600',
       icon: <Truck className="h-4 w-4 -scale-x-100" />
     },
-    'The Very Group': {
-      className: 'bg-black hover:bg-gray-800 text-white border-gray-800',
-      iconUrl: 'https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png',
-      logoClassName: 'bg-white p-0.5 rounded-sm'
-    },
     'Yodel': {
         className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
         icon: <Truck className="h-4 w-4" />
@@ -229,7 +224,7 @@ export default function DepartureDashboard() {
       'Carrier': d.carrier,
       'Via': d.via || 'N/A',
       'Destination': d.destination,
-      'Trailer': d.trailerNumber,
+      'Trailer': d.trailerNumber || 'N/A',
       'Collection Time': format(parseISO(d.collectionTime), 'yyyy-MM-dd HH:mm'),
       'Bay': d.bayDoor || 'N/A',
       'Seal No.': d.sealNumber || 'N/A',
