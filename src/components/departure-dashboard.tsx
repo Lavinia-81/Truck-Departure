@@ -73,17 +73,19 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 // --- Lista de Admini ---
 // Adăugați aici email-urile care au permisiunea de a accesa panoul.
-const ADMIN_EMAILS = ['admin@example.com', 'your-email@gmail.com'];
+const ADMIN_EMAILS = ['maria-lavinia.dusca@theverygroup.com', 'duscalavinia2@gmail.com'];
 
 
 function LoginScreen() {
     const auth = useAuth();
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [authError, setAuthError] = useState<{title: string, description: string} | null>(null);
-    const { toast } = useToast();
     const [currentHost, setCurrentHost] = useState('');
+    
     useEffect(() => {
-        setCurrentHost(window.location.hostname);
+        if (typeof window !== 'undefined') {
+            setCurrentHost(window.location.hostname);
+        }
     }, []);
 
     const handleLogin = async () => {
@@ -99,8 +101,12 @@ function LoginScreen() {
             
             if (error.code === 'auth/unauthorized-domain') {
                 title = 'Unauthorized Domain';
-                description = `The current domain (${currentHost}) is not authorized. You must add it to the 'Authorized domains' list in your Firebase Authentication settings.`;
+                description = `The current domain (${currentHost}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`;
+            } else if (error.code === 'auth/popup-blocked') {
+                title = 'Pop-up Blocked';
+                description = 'The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again. Look for an icon in your address bar.';
             }
+
             setAuthError({ title, description });
         } finally {
             setIsSigningIn(false);
@@ -143,7 +149,7 @@ function LoginScreen() {
                            </div>
                         </div>
                     )}
-                    <div className="w-full rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-300">
+                     <div className="w-full rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-300">
                         <div className="flex items-start">
                             <Info className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
                             <div>
@@ -152,7 +158,7 @@ function LoginScreen() {
                                     To enable Google Login, you must add the current domain to your Firebase project's authorized domains.
                                 </p>
                                 <p className="mt-2 font-semibold">
-                                    Domain to add: <span className="font-mono bg-yellow-200/50 dark:bg-yellow-900/50 px-1 py-0.5 rounded">{currentHost || 'loading...'}</span>
+                                    Current domain: <span className="font-mono bg-yellow-200/50 dark:bg-yellow-900/50 px-1 py-0.5 rounded">{currentHost || 'loading...'}</span>
                                 </p>
                                 <a href="https://console.firebase.google.com/u/0/project/_/authentication/settings" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-yellow-800 dark:text-yellow-200 underline">
                                     Go to Firebase Auth Settings &rarr;
