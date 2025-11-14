@@ -48,8 +48,6 @@ const retryPrompt = async (
   for (let i = 0; i < retries; i++) {
     try {
       const promptText = `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver.
-You MUST reply with a valid JSON object that conforms to this schema:
-${JSON.stringify(SuggestOptimizedRouteOutputSchema.jsonSchema())}
 
 Here are the details for the current trip:
 - Destination: ${input.destination}
