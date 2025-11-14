@@ -1,12 +1,12 @@
 'use client';
-import { FirebaseApp, getApps } from 'firebase/app';
-import { Auth } from 'firebase/auth';
-import {
-  Firestore,
-} from 'firebase/firestore';
-import { firebaseConfig, auth, firestore } from './config';
+import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
+import { Auth, getAuth } from 'firebase/auth';
+import { Firestore, getFirestore } from 'firebase/firestore';
+import { firebaseConfig } from './config';
 
 let firebaseApp: FirebaseApp;
+let auth: Auth;
+let firestore: Firestore;
 
 export function initializeFirebase(): {
   firebaseApp: FirebaseApp;
@@ -17,11 +17,14 @@ export function initializeFirebase(): {
     if (!firebaseConfig.apiKey) {
       throw new Error('Firebase configuration is invalid. apiKey is missing.');
     }
-    // app is already initialized in config.ts
-    firebaseApp = getApps()[0];
+    firebaseApp = initializeApp(firebaseConfig);
   } else {
     firebaseApp = getApps()[0];
   }
+  
+  auth = getAuth(firebaseApp);
+  firestore = getFirestore(firebaseApp);
+
   return { firebaseApp, auth, firestore };
 }
 
