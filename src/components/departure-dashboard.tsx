@@ -32,7 +32,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useCollection, useFirestore, useAuth } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { ThemeToggle } from './theme-toggle';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, User, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithRedirect, getRedirectResult, GoogleAuthProvider, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -76,7 +76,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
     },
 };
 
-const LoginScreen = ({ onLogin, error }: { onLogin: () => void, error: string | null }) => (
+const LoginScreen = ({ onLogin, error, isAuthenticating }: { onLogin: () => void, error: string | null, isAuthenticating: boolean }) => (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
         <Card className="w-full max-w-sm">
             <CardHeader>
@@ -91,14 +91,18 @@ const LoginScreen = ({ onLogin, error }: { onLogin: () => void, error: string | 
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 )}
-                 <Button onClick={onLogin}>
-                    <LogIn className="mr-2 h-4 w-4" />
+                 <Button onClick={onLogin} disabled={isAuthenticating}>
+                    {isAuthenticating ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <LogIn className="mr-2 h-4 w-4" />
+                    )}
                     Login with Google
                 </Button>
             </CardContent>
             <CardFooter>
                  <p className="text-xs text-muted-foreground">
-                    Access is restricted to authorized personnel only. If you are having trouble logging in, please check if pop-ups are allowed and if the current domain is authorized in Firebase.
+                    Access is restricted to authorized personnel only. Ensure your domain is authorized in Firebase and pop-ups are allowed if issues persist.
                  </p>
             </CardFooter>
         </Card>
@@ -133,20 +137,47 @@ export default function DepartureDashboard() {
   const auth = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
   
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
     (firestore && user && ADMIN_EMAILS.includes(user.email || '')) ? collection(firestore, 'dispatchSchedules') : null
   );
-
+  
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthLoading(false);
+      setIsAuthenticating(false); // Finished initial auth check
     });
     return () => unsubscribe();
+  }, [auth]);
+
+  useEffect(() => {
+    if (!auth) return;
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // User has just been redirected back from Google.
+          // onAuthStateChanged will handle setting the user.
+        } else {
+            // This is a normal page load, not a redirect result.
+            setIsAuthenticating(false);
+        }
+      })
+      .catch((error) => {
+        console.error("Login redirect failed:", error);
+        if (error.code === 'auth/unauthorized-domain') {
+            const domain = window.location.origin;
+            setLoginError(`The current domain (${domain}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`);
+        } else {
+            setLoginError(error.message || "An unknown error occurred during login.");
+        }
+        setIsAuthenticating(false);
+      });
   }, [auth]);
 
 
@@ -166,20 +197,9 @@ export default function DepartureDashboard() {
   const handleLogin = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
-    try {
-        setLoginError(null);
-        await signInWithPopup(auth, provider);
-    } catch (error: any) {
-        console.error("Login failed:", error);
-        if (error.code === 'auth/popup-blocked') {
-            setLoginError("The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again. Look for an icon in your address bar.");
-        } else if (error.code === 'auth/unauthorized-domain') {
-            const domain = window.location.origin;
-            setLoginError(`The current domain (${domain}) is not authorized. Please go to your Firebase project console, navigate to 'Authentication > Settings > Authorized domains' and add this domain.`);
-        } else {
-            setLoginError(error.message || "An unknown error occurred during login.");
-        }
-    }
+    setIsAuthenticating(true);
+    setLoginError(null);
+    await signInWithRedirect(auth, provider);
   };
 
   const handleLogout = async () => {
@@ -492,7 +512,7 @@ export default function DepartureDashboard() {
   }
 
   if (!user) {
-    return <LoginScreen onLogin={handleLogin} error={loginError} />;
+    return <LoginScreen onLogin={handleLogin} error={loginError} isAuthenticating={isAuthenticating} />;
   }
 
   if (!ADMIN_EMAILS.includes(user.email || '')) {
