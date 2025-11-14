@@ -47,7 +47,7 @@ export async function suggestOptimizedRoute(
     plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
   });
 
-  const promptText = `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver. You MUST reply with a valid JSON object.
+  const promptText = `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver.
 
 Here are the details for the current trip:
 - Destination: ${input.destination}
@@ -75,11 +75,9 @@ Based on this information, provide the optimized route, estimated time, your rea
       throw new Error('AI returned an empty response.');
     }
 
-    // Since we requested JSON output, we need to parse it.
-    const parsedOutput = JSON.parse(output as string);
-
-    // Validate the parsed output against our Zod schema.
-    const validationResult = SuggestOptimizedRouteOutputSchema.safeParse(parsedOutput);
+    // The output is already a valid JSON object because we requested it.
+    // We just need to validate it with Zod.
+    const validationResult = SuggestOptimizedRouteOutputSchema.safeParse(output);
     if (!validationResult.success) {
       console.error("AI output validation failed:", validationResult.error);
       throw new Error("AI returned data in an invalid format.");
