@@ -7,13 +7,13 @@
  * - SuggestOptimizedRouteInput - The input type for the suggestOptimizedRoute function.
  * - SuggestOptimizedRouteOutput - The return type for the suggestOptimizedRoute function.
  */
+import { config as dotenvConfig } from 'dotenv';
+// Ensure dotenv is configured at the very top to load environment variables
+dotenvConfig({ path: '.env.local' });
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { z } from 'genkit';
-import { config as dotenvConfig } from 'dotenv';
-
-dotenvConfig();
+import { z } from 'zod'; // Use zod from zod directly, not genkit's re-export
 
 const SuggestOptimizedRouteInputSchema = z.object({
   destination: z.string().describe('The final destination of the route.'),
