@@ -32,6 +32,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/t
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 
+
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
   Loading: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
@@ -119,8 +120,10 @@ export default function DepartureDashboard() {
       let description = "Could not retrieve traffic warnings. Please try again.";
       if (e.message?.includes('429')) {
         description = "You have reached the API request limit. Please wait one minute before trying again.";
-      } else if (e.message?.includes('API key')) {
-        description = "The API key for the AI service is not valid or not configured. Check the .env file.";
+      } else if (e.message?.toLowerCase().includes('api key') || e.message?.toLowerCase().includes('permission')) {
+        description = "The API key for the AI service is not valid or not configured. Check the .env.local file.";
+      } else if (e.message?.includes('NOT_FOUND')) {
+        description = "The AI model was not found. This might be a configuration issue. Please contact support."
       }
       toast({
         variant: "destructive",
@@ -572,5 +575,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    
