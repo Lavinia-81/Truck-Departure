@@ -8,8 +8,12 @@
  * - SuggestOptimizedRouteOutput - The return type for the suggestOptimizedRoute function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+import { z } from 'genkit';
+import { config as dotenvConfig } from 'dotenv';
+
+dotenvConfig();
 
 const SuggestOptimizedRouteInputSchema = z.object({
   destination: z.string().describe('The final destination of the route.'),
@@ -37,51 +41,55 @@ export type SuggestOptimizedRouteOutput = z.infer<
 export async function suggestOptimizedRoute(
   input: SuggestOptimizedRouteInput
 ): Promise<SuggestOptimizedRouteOutput> {
-  return suggestOptimizedRouteFlow(input);
-}
+  // Initialize Genkit and the Google AI plugin directly within the server action.
+  // This ensures a clean, isolated configuration for each execution.
+  const ai = genkit({
+    plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
+  });
 
-
-const routeOptimizationPrompt = ai.definePrompt(
-  {
-    name: 'routeOptimizationPrompt',
-    input: { schema: SuggestOptimizedRouteInputSchema },
-    output: { schema: SuggestOptimizedRouteOutputSchema },
-    prompt: `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver.
+  const promptText = `You are a route optimization expert for a logistics company. Your goal is to provide the best route for a truck driver. You MUST reply with a valid JSON object.
 
 Here are the details for the current trip:
-- Destination: {{{destination}}}
-- Current Location: {{{currentLocation}}}
-{{#if via}}- Via (first stop): {{{via}}}{{/if}}
-{{#if trafficData}}- Current Traffic Information: {{{trafficData}}}{{/if}}
+- Destination: ${input.destination}
+- Current Location: ${input.currentLocation}
+${input.via ? `- Via (first stop): ${input.via}` : ''}
+${input.trafficData ? `- Current Traffic Information: ${input.trafficData}` : ''}
 
-Based on this information, provide the optimized route, estimated time, your reasoning, a summary of road warnings, and a warning level.`,
-    config: {
+Based on this information, provide the optimized route, estimated time, your reasoning, a summary of road warnings, and a warning level.`;
+
+  try {
+    const response = await ai.generate({
+      model: 'gemini-pro', // Using the stable 'gemini-pro' model.
+      prompt: promptText,
+      config: {
         response: {
             format: 'json',
-        }
-    }
-  },
-);
+            schema: SuggestOptimizedRouteOutputSchema
+        },
+      },
+    });
 
-
-const suggestOptimizedRouteFlow = ai.defineFlow(
-  {
-    name: 'suggestOptimizedRouteFlow',
-    inputSchema: SuggestOptimizedRouteInputSchema,
-    outputSchema: SuggestOptimizedRouteOutputSchema,
-  },
-  async input => {
-    // A simple retry mechanism can be added here if needed, but for now, we'll keep it direct.
-    try {
-        const { output } = await routeOptimizationPrompt(input);
-        if (!output) {
-            throw new Error('AI returned an empty response.');
-        }
-        return output;
-    } catch (e: any) {
-        console.error('Genkit flow failed:', e);
-        // Re-throw the error to be caught by the client-side caller
-        throw new Error(`Route optimization failed: ${e.message}`);
+    const output = response.output();
+    
+    if (!output) {
+      throw new Error('AI returned an empty response.');
     }
+
+    // Since we requested JSON output, we need to parse it.
+    const parsedOutput = JSON.parse(output as string);
+
+    // Validate the parsed output against our Zod schema.
+    const validationResult = SuggestOptimizedRouteOutputSchema.safeParse(parsedOutput);
+    if (!validationResult.success) {
+      console.error("AI output validation failed:", validationResult.error);
+      throw new Error("AI returned data in an invalid format.");
+    }
+    
+    return validationResult.data;
+
+  } catch (e: any) {
+    console.error('Genkit execution failed:', e);
+    // Re-throw a more user-friendly error to be caught by the client-side caller.
+    throw new Error(`Route optimization failed: ${e.message}`);
   }
-);
+}
