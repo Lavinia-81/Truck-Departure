@@ -21,7 +21,7 @@ interface HeaderProps {
 
 export default function Header({ onImport, onExport }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-background px-4 py-3 md:px-6">
+    <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-card px-4 py-3 md:px-6">
       {/* Mobile Menu */}
       <Sheet>
         <SheetTrigger asChild>

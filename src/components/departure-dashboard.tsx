@@ -513,7 +513,7 @@ export default function DepartureDashboard() {
             </CardContent>
           </Card>
         </main>
-        <footer className="sticky bottom-0 border-t bg-background px-4 py-3 md:px-6 flex-shrink-0">
+        <footer className="sticky bottom-0 border-t bg-card px-4 py-3 md:px-6 flex-shrink-0">
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
               <span className="font-semibold text-base mr-2">Legend:</span>
               {STATUSES.map((status) => (
