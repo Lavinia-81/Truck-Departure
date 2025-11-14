@@ -58,7 +58,6 @@ ${input.trafficData ? `- Current Traffic Information: ${input.trafficData}` : ''
 Based on this information, provide the optimized route, estimated time, your reasoning, a summary of road warnings, and a warning level.`;
       
       const response = await ai.generate({
-          model: 'gemini-1.5-flash-latest',
           prompt: promptText,
           config: {
               response: {
