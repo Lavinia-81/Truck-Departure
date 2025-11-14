@@ -5,7 +5,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { firebaseConfig } from './config';
+import { firebaseConfig } from './config-local'; // <-- Changed to use local config
 
 type FirebaseContextState = {
   firebaseApp: FirebaseApp;
@@ -25,8 +25,8 @@ export function FirebaseClientProvider({
   useEffect(() => {
     try {
       // Basic check if the config looks valid before initializing
-      if (!firebaseConfig || !firebaseConfig.apiKey) {
-        throw new Error("Firebase configuration is not available. Please check your setup.");
+      if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+        throw new Error("Firebase configuration is not available. Please fill in your credentials in src/firebase/config-local.ts");
       }
       const context = initializeFirebase();
       setFirebaseContext(context);
@@ -42,10 +42,7 @@ export function FirebaseClientProvider({
         <div className="text-center text-destructive p-4 border border-destructive/50 rounded-lg max-w-md">
           <h1 className="text-xl font-bold">Firebase Configuration Error</h1>
           <p>
-            Could not initialize Firebase. Please check your setup.
-          </p>
-           <p className="text-sm text-muted-foreground mt-2">
-            Error: {error.message}
+            {error.message}
           </p>
         </div>
       </div>
