@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut, Info } from 'lucide-react';
+import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut, Info, ShieldAlert } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -32,7 +32,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useCollection, useFirestore, useAuth, useUser } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { ThemeToggle } from './theme-toggle';
-import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 
@@ -71,11 +71,20 @@ const carrierStyles: Record<string, CarrierStyle> = {
     },
 };
 
+// --- Lista de Admini ---
+// Adăugați aici email-urile care au permisiunea de a accesa panoul.
+const ADMIN_EMAILS = ['admin@example.com', 'your-email@gmail.com'];
+
+
 function LoginScreen() {
     const auth = useAuth();
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [authError, setAuthError] = useState<{title: string, description: string} | null>(null);
     const { toast } = useToast();
+    const [currentHost, setCurrentHost] = useState('');
+    useEffect(() => {
+        setCurrentHost(window.location.hostname);
+    }, []);
 
     const handleLogin = async () => {
         setIsSigningIn(true);
@@ -89,27 +98,14 @@ function LoginScreen() {
             let description = error.message || 'An unexpected error occurred during login.';
             
             if (error.code === 'auth/unauthorized-domain') {
-                const currentDomain = window.location.hostname;
                 title = 'Unauthorized Domain';
-                description = `The current domain (${currentDomain}) is not authorized. You must add it to the 'Authorized domains' list in your Firebase Authentication settings.`;
-                setAuthError({ title, description });
-            } else {
-              toast({
-                  variant: 'destructive',
-                  title: title,
-                  description: description,
-              });
+                description = `The current domain (${currentHost}) is not authorized. You must add it to the 'Authorized domains' list in your Firebase Authentication settings.`;
             }
+            setAuthError({ title, description });
         } finally {
             setIsSigningIn(false);
         }
     };
-    
-    // Get the current domain to display in the warning message.
-    const [currentHost, setCurrentHost] = useState('');
-    useEffect(() => {
-        setCurrentHost(window.location.hostname);
-    }, []);
 
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
@@ -170,14 +166,47 @@ function LoginScreen() {
     );
 }
 
+function AccessDeniedScreen({ user, onLogout }: { user: User, onLogout: () => void }) {
+  return (
+    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md text-center">
+        <CardHeader>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+            <ShieldAlert className="h-6 w-6 text-destructive" />
+          </div>
+          <CardTitle className="mt-4 text-2xl">Access Denied</CardTitle>
+          <CardDescription>
+            Your account does not have permission to access this admin panel.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            You are logged in as <span className="font-semibold">{user.displayName}</span> ({user.email}).
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please contact the administrator if you believe this is an error.
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={onLogout} variant="outline" className="w-full">
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
 
 export default function DepartureDashboard() {
   const auth = useAuth();
   const { user, isLoading: isLoadingUser } = useUser();
   const firestore = useFirestore();
   
-  // Conditionally set the collection path only if the user is logged in
-  const departuresCollection = firestore && user ? collection(firestore, 'dispatchSchedules') : null;
+  const isUserAdmin = user?.email ? ADMIN_EMAILS.includes(user.email) : false;
+  
+  const departuresCollection = firestore && user && isUserAdmin ? collection(firestore, 'dispatchSchedules') : null;
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresCollection);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -508,6 +537,10 @@ export default function DepartureDashboard() {
 
   if (!user) {
     return <LoginScreen />;
+  }
+  
+  if (!isUserAdmin) {
+    return <AccessDeniedScreen user={user} onLogout={handleLogout} />;
   }
 
 
