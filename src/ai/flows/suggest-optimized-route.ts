@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const SuggestOptimizedRouteInputSchema = z.object({
   destination: z.string().describe('The final destination of the route.'),
@@ -69,7 +70,10 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
     outputSchema: SuggestOptimizedRouteOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt({
+        input,
+        model: googleAI('gemini-1.5-flash-preview'),
+    });
     return output!;
   }
 );
