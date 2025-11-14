@@ -69,11 +69,13 @@ export default function RouteOptimizerPage() {
         } catch (error: any) {
             console.error(error);
              let description = "Could not retrieve route. Please try again.";
-             if (error.message?.includes('429')) {
+             const errorMessage = typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : String(error);
+
+             if (errorMessage.includes('429')) {
                 description = "You have reached the API request limit. Please wait one minute before trying again.";
-            } else if (error.message?.toLowerCase().includes('api key') || error.message?.toLowerCase().includes('permission')) {
+            } else if (errorMessage.toLowerCase().includes('api key') || errorMessage.toLowerCase().includes('permission')) {
                 description = "The API key for the AI service is not valid or not configured. Check the .env.local file.";
-            } else if (error.message?.includes('NOT_FOUND')) {
+            } else if (errorMessage.includes('NOT_FOUND')) {
                 description = "The AI model was not found. This might be a configuration issue. Please contact support."
             }
 
