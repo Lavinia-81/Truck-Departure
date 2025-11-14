@@ -7,8 +7,6 @@
  * - SuggestOptimizedRouteInput - The input type for the suggestOptimizedRoute function.
  * - SuggestOptimizedRouteOutput - The return type for the suggestOptimizedRoute function.
  */
-import { definePrompt } from "@genkit-ai/ai";
-
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
@@ -41,39 +39,24 @@ export async function suggestOptimizedRoute(
   return suggestOptimizedRouteFlow(input);
 }
 
-const retryPrompt = async (
-  input: SuggestOptimizedRouteInput,
-  retries = 3,
-  delay = 1500
-): Promise<SuggestOptimizedRouteOutput> => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      // Call the AI prompt; the SDK may return a string (JSON) or null.
-      const prompt = `Optimize a truck route with the following details:
-- Destination: ${input.destination}
-- Current Location: ${input.currentLocation}
-${input.via ? `- Via: ${input.via}` : ''}
-${input.trafficData ? `- Traffic Data: ${input.trafficData}` : ''}
-Please provide the optimized route, estimated time, reasoning, road warnings, and warning level.`;
-      const response = await ai.prompt(prompt)();
 
-      if (!response) {
-        throw new Error('Empty response from AI');
-      }
+const prompt = ai.definePrompt({
+  name: 'suggestOptimizedRoutePrompt',
+  input: {schema: SuggestOptimizedRouteInputSchema},
+  output: {schema: SuggestOptimizedRouteOutputSchema},
+  prompt: `You are a truck route optimization expert. Analyze the following details and provide the best route.
+- Current Location: {{{currentLocation}}}
+- Destination: {{{destination}}}
+{{#if via}}- Via: {{{via}}}{{/if}}
+{{#if trafficData}}- Traffic Data: {{{trafficData}}}{{/if}}
 
-      // Parse the JSON string response
-      return JSON.parse(response.text) as SuggestOptimizedRouteOutput;
-    } catch (error: any) {
-      if (error.message?.includes('503') && i < retries - 1) {
-        await new Promise(res => setTimeout(res, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error('Failed to get a valid response from AI after retries');
-};
+Based on this, provide:
+1.  **Optimized Route**: The most efficient route for a heavy goods vehicle.
+2.  **Estimated Time**: The total estimated travel time.
+3.  **Reasoning**: A brief explanation for your choice of route, considering traffic, road type, and potential stops.
+4.  **Road Warnings**: A summary of current issues like accidents, closures, or heavy congestion. If none, state "No significant warnings."
+5.  **Warning Level**: Classify the severity of the warnings as 'none', 'moderate', or 'severe'.`,
+});
 
 const suggestOptimizedRouteFlow = ai.defineFlow(
   {
@@ -82,7 +65,7 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
     outputSchema: SuggestOptimizedRouteOutputSchema,
   },
   async input => {
-    const output = await retryPrompt(input);
+    const {output} = await prompt(input);
     return output!;
   }
 );
