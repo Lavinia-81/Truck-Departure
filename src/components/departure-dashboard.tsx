@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut } from 'lucide-react';
+import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut, KeyRound } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -29,17 +29,15 @@ import { STATUSES } from '@/lib/types';
 import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCollection, useFirestore, useAuth } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { ThemeToggle } from './theme-toggle';
-import { onAuthStateChanged, signInWithRedirect, getRedirectResult, GoogleAuthProvider, User, signOut as firebaseSignOut } from 'firebase/auth';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Input } from './ui/input';
 
-
-// --- Lista de Admini ---
-// Adăugați aici email-urile care au permisiunea de a accesa panoul.
-const ADMIN_EMAILS = ['admin@example.com', 'your-email@gmail.com'];
+// --- Cheie Secretă pentru Admin ---
+// Introduceți această cheie pentru a accesa panoul.
+const ADMIN_SECRET_KEY = 'secret123';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -76,115 +74,71 @@ const carrierStyles: Record<string, CarrierStyle> = {
     },
 };
 
-const LoginScreen = ({ onLogin, error, isAuthenticating }: { onLogin: () => void, error: string | null, isAuthenticating: boolean }) => (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-            <CardHeader>
-                <CardTitle>Admin Dashboard</CardTitle>
-                <CardDescription>Please log in to manage departures.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-                 {error && (
-                    <Alert variant="destructive">
-                        <Terminal className="h-4 w-4" />
-                        <AlertTitle>Login Error</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                )}
-                 <Button onClick={onLogin} disabled={isAuthenticating}>
-                    {isAuthenticating ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <LogIn className="mr-2 h-4 w-4" />
-                    )}
-                    Login with Google
-                </Button>
-            </CardContent>
-            <CardFooter>
-                 <p className="text-xs text-muted-foreground">
-                    Access is restricted to authorized personnel only. Ensure your domain is authorized in Firebase and pop-ups are allowed if issues persist.
-                 </p>
-            </CardFooter>
-        </Card>
-    </div>
-);
+const LoginScreen = ({ onLogin }: { onLogin: (key: string) => void }) => {
+    const [key, setKey] = useState('');
+    const [error, setError] = useState<string | null>(null);
 
-const AccessDeniedScreen = ({ user, onLogout }: { user: User, onLogout: () => void }) => (
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (key === ADMIN_SECRET_KEY) {
+            onLogin(key);
+        } else {
+            setError('Invalid secret key.');
+        }
+    };
+
+    return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm text-center">
-            <CardHeader>
-                <CardTitle>Access Denied</CardTitle>
-                <CardDescription>
-                    The email <span className="font-semibold">{user.email}</span> is not authorized to access this dashboard.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground">
-                    Please contact the administrator if you believe this is an error.
-                </p>
-            </CardContent>
-            <CardFooter>
-                <Button onClick={onLogout} variant="outline" className="w-full">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                </Button>
-            </CardFooter>
+        <Card className="w-full max-w-sm">
+             <form onSubmit={handleSubmit}>
+                <CardHeader>
+                    <CardTitle>Admin Access</CardTitle>
+                    <CardDescription>Please enter the secret key to manage departures.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                    {error && (
+                        <Alert variant="destructive">
+                            <Terminal className="h-4 w-4" />
+                            <AlertTitle>Login Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+                    <div className="relative">
+                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                           type="password"
+                           placeholder="Secret Key"
+                           className="pl-10"
+                           value={key}
+                           onChange={(e) => {
+                               setKey(e.target.value);
+                               if (error) setError(null);
+                           }}
+                       />
+                    </div>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-4">
+                    <Button type="submit" className="w-full">
+                        <LogIn className="mr-2 h-4 w-4" />
+                        Login
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                        Access is restricted. The default key is 'secret123'.
+                    </p>
+                </CardFooter>
+            </form>
         </Card>
     </div>
-);
+)};
+
 
 export default function DepartureDashboard() {
-  const auth = useAuth();
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    (firestore && user && ADMIN_EMAILS.includes(user.email || '')) ? collection(firestore, 'dispatchSchedules') : null
+    (firestore && isAuthenticated) ? collection(firestore, 'dispatchSchedules') : null
   );
-  
-  useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsAuthLoading(false);
-      setIsAuthenticating(false);
-    });
-    return () => unsubscribe();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!auth || !isAuthenticating) return;
-
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-            // User successfully signed in.
-        }
-        setIsAuthenticating(false);
-      })
-      .catch((error) => {
-        console.error("Login redirect failed:", error);
-        let errorMessage = "An unknown error occurred during login.";
-        
-        if (error.code === 'auth/unauthorized-domain') {
-            const authDomain = auth.config.authDomain;
-            errorMessage = `This domain is not authorized. Please add BOTH of the following to your Firebase project's 'Authorized domains' list:\n1. ${window.location.hostname}\n2. ${authDomain}`;
-        } else if (error.code === 'auth/popup-blocked') {
-            errorMessage = "The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again.";
-        } else if (error.code === 'auth/operation-not-allowed') {
-            errorMessage = "Google Sign-In is not enabled for this project. Please go to your Firebase project console, navigate to 'Authentication > Sign-in method', and enable the Google provider.";
-        } else {
-            errorMessage = error.message;
-        }
-
-        setLoginError(errorMessage);
-        setIsAuthenticating(false);
-      });
-  }, [auth, isAuthenticating]);
-
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
@@ -199,37 +153,14 @@ export default function DepartureDashboard() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLogin = async () => {
-    if (!auth) return;
-    const provider = new GoogleAuthProvider();
-    setIsAuthenticating(true);
-    setLoginError(null);
-    try {
-        await signInWithRedirect(auth, provider);
-    } catch (error: any) {
-        console.error("Login redirect failed:", error);
-        let errorMessage = "An unknown error occurred during login.";
-        
-        if (error.code === 'auth/unauthorized-domain') {
-            const authDomain = auth.config.authDomain;
-            errorMessage = `This domain is not authorized. Please add BOTH of the following to your Firebase project's 'Authorized domains' list:\n1. ${window.location.hostname}\n2. ${authDomain}`;
-        } else if (error.code === 'auth/popup-blocked') {
-            errorMessage = "The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again.";
-        } else if (error.code === 'auth/operation-not-allowed') {
-            errorMessage = "Google Sign-In is not enabled for this project. Please go to your Firebase project console, navigate to 'Authentication > Sign-in method', and enable the Google provider.";
-        } else {
-            errorMessage = error.message;
-        }
-
-        setLoginError(errorMessage);
-        setIsAuthenticating(false);
+  const handleLogin = (key: string) => {
+    if (key === ADMIN_SECRET_KEY) {
+        setIsAuthenticated(true);
     }
   };
 
-  const handleLogout = async () => {
-    if (!auth) return;
-    await firebaseSignOut(auth);
-    setUser(null);
+  const handleLogout = () => {
+    setIsAuthenticated(false);
   };
   
   const handleAddNew = () => {
@@ -527,7 +458,7 @@ export default function DepartureDashboard() {
   
   const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
 
-  if (isAuthLoading || (user && !departures)) {
+  if (isLoadingDepartures && isAuthenticated) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -536,12 +467,8 @@ export default function DepartureDashboard() {
     );
   }
 
-  if (!user) {
-    return <LoginScreen onLogin={handleLogin} error={loginError} isAuthenticating={isAuthenticating} />;
-  }
-
-  if (!ADMIN_EMAILS.includes(user.email || '')) {
-    return <AccessDeniedScreen user={user} onLogout={handleLogout} />;
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   return (
@@ -567,17 +494,9 @@ export default function DepartureDashboard() {
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Add Departure
                   </Button>
-                  {user && (
-                    <div className="flex items-center gap-2">
-                       <Avatar className="h-8 w-8">
-                         <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                         <AvatarFallback>{user.displayName?.charAt(0) || 'A'}</AvatarFallback>
-                       </Avatar>
-                       <Button variant="outline" size="sm" onClick={handleLogout}>
-                         <LogOut className="mr-2 h-4 w-4" /> Logout
-                       </Button>
-                    </div>
-                  )}
+                   <Button variant="outline" size="sm" onClick={handleLogout}>
+                     <LogOut className="mr-2 h-4 w-4" /> Logout
+                   </Button>
               </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col overflow-hidden">
@@ -749,5 +668,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    

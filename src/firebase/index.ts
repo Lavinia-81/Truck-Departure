@@ -1,16 +1,13 @@
 'use client';
 import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
-import { Auth, getAuth } from 'firebase/auth';
 import { Firestore, getFirestore } from 'firebase/firestore';
-import { firebaseConfig } from './config-local'; // <-- Changed to use local config
+import { firebaseConfig } from './config-local'; 
 
 let firebaseApp: FirebaseApp;
-let auth: Auth;
 let firestore: Firestore;
 
 export function initializeFirebase(): {
   firebaseApp: FirebaseApp;
-  auth: Auth;
   firestore: Firestore;
 } {
   if (getApps().length === 0) {
@@ -22,10 +19,9 @@ export function initializeFirebase(): {
     firebaseApp = getApps()[0];
   }
   
-  auth = getAuth(firebaseApp);
   firestore = getFirestore(firebaseApp);
 
-  return { firebaseApp, auth, firestore };
+  return { firebaseApp, firestore };
 }
 
 export * from './provider';
