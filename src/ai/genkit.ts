@@ -2,10 +2,9 @@
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
-import {config} from 'dotenv';
 
-// Load environment variables from .env file
-config();
+// Next.js loads .env variables automatically into process.env.
+// No need for the dotenv package here.
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
