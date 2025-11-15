@@ -7,9 +7,9 @@
  * - SuggestOptimizedRouteInput - The input type for the suggestOptimizedRoute function.
  * - SuggestOptimizedRouteOutput - The return type for the suggestOptimizedRoute function.
  */
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
-import {z} from 'genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+import { z } from 'genkit';
 
 // Initialize Genkit AI instance within the server action file
 const apiKey = process.env.GEMINI_API_KEY;
@@ -17,13 +17,12 @@ const apiKey = process.env.GEMINI_API_KEY;
 let ai: ReturnType<typeof genkit>;
 
 if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-  ai = genkit({plugins: []}); // Initialize with no plugins if key is missing
+  ai = genkit({ plugins: [] }); // Initialize with no plugins if key is missing
 } else {
   ai = genkit({
-    plugins: [googleAI({apiKey})],
+    plugins: [googleAI({ apiKey })],
   });
 }
-
 
 const SuggestOptimizedRouteInputSchema = z.object({
   destination: z.string().describe('The final destination of the route.'),
@@ -57,9 +56,23 @@ export async function suggestOptimizedRoute(
 
 const prompt = ai.definePrompt({
   name: 'suggestOptimizedRoutePrompt',
-  input: {schema: SuggestOptimizedRouteInputSchema},
-  output: {schema: SuggestOptimizedRouteOutputSchema},
+  input: { schema: SuggestOptimizedRouteInputSchema },
+  output: { schema: SuggestOptimizedRouteOutputSchema },
+  // =================================================================
+  // === IMPORTANT: Model Name =======================================
+  // =================================================================
+  // If the AI features are not working, the model name below might be
+  // incorrect for your project/region.
+  //
+  // 1. Go to Google AI Studio: https://aistudio.google.com/
+  // 2. Click "Create new" -> "Freeform prompt".
+  // 3. In the top-left corner, click the model dropdown.
+  // 4. Copy the API name of an available model (e.g., 'gemini-pro').
+  // 5. Paste the model name below.
+  //
   model: 'googleai/gemini-pro',
+  // =================================================================
+
   prompt: `You are a truck route optimization expert. Analyze the following details and provide the best route.
 - Current Location: {{{currentLocation}}}
 - Destination: {{{destination}}}
@@ -82,9 +95,9 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
   },
   async input => {
     if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-        throw new Error('The API key for the AI service is not valid or not configured. Check the .env file.');
+      throw new Error('The API key for the AI service is not valid or not configured. Check the .env file.');
     }
-    const {output} = await prompt(input);
+    const { output } = await prompt(input);
     return output!;
   }
 );
