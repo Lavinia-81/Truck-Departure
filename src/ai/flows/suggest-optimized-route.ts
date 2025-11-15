@@ -11,6 +11,8 @@ import { ai, genkit } from "genkit";
 import { z } from "zod";
 import { googleAI } from "@genkit-ai/google-genai";
 import { format } from "date-fns";
+import "dotenv/config";
+
 
 // Initialize Genkit with the Google AI plugin.
 // This is the central configuration for our AI capabilities.
@@ -65,6 +67,24 @@ export type SuggestOptimizedRouteOutput = z.infer<
   typeof SuggestOptimizedRouteOutputSchema
 >;
 
+
+// --------------------------------------------------------------------------
+// !!! IMPORTANT - AI MODEL CONFIGURATION !!!
+// --------------------------------------------------------------------------
+// If you are getting a 404 Not Found error, it's because the model name below
+// is not available for your API key.
+//
+// HOW TO FIX:
+// 1. Go to Google AI Studio: https://aistudio.google.com/
+// 2. Click "Create new" -> "Freeform prompt".
+// 3. In the top-left corner, click the model dropdown.
+// 4. Copy the exact name of an available model (e.g., 'gemini-1.5-pro-latest').
+// 5. Paste that name as the value for the GEMINI_MODEL_NAME constant below.
+//
+const GEMINI_MODEL_NAME = 'gemini-1.5-flash-latest';
+// --------------------------------------------------------------------------
+
+
 // -- Main exported function --
 // This is the function that our application will call.
 
@@ -88,11 +108,7 @@ const optimizationPrompt = ai.definePrompt({
   name: "routeOptimizationPrompt",
   input: { schema: SuggestOptimizedRouteInputSchema },
   output: { schema: SuggestOptimizedRouteOutputSchema },
-  // IMPORTANT: The model name is critical. If you get a "404 Not Found" error,
-  // it means this model is not available for your API key.
-  // To fix this, go to Google AI Studio (https://aistudio.google.com/),
-  // find an available "Gemini" model, and replace the name below.
-  model: "googleai/gemini-1.5-flash-latest",
+  model: GEMINI_MODEL_NAME,
   prompt: `
     You are an expert logistics AI for a major UK distribution center.
     Your task is to provide a real-time route analysis for a truck departure.
