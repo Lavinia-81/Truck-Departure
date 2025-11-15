@@ -121,7 +121,7 @@ const LoginScreen = ({ onLogin }: { onLogin: (key: string) => void }) => {
                         Login
                     </Button>
                     <p className="text-xs text-muted-foreground">
-                        Access is restricted. The default key is 'secret123'.
+                        Access is restricted. Please contact an administrator if you have issues.
                     </p>
                 </CardFooter>
             </form>
