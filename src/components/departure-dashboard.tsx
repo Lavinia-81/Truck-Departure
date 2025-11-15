@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route, LogIn, LogOut, KeyRound } from 'lucide-react';
+import { Edit, Trash2, PlusCircle, Ship, Route, LogIn, LogOut, KeyRound } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -26,8 +26,6 @@ import {
 import Header from './header';
 import { Loader2, Package, Truck, Terminal } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
-import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
-import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
@@ -145,11 +143,7 @@ export default function DepartureDashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingDeparture, setDeletingDeparture] = useState<Departure | null>(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
-  const [isRouteStatusDialogOpen, setIsRouteStatusDialogOpen] = useState(false);
-  const [selectedDepartureForStatus, setSelectedDepartureForStatus] = useState<Departure | null>(null);
-  const [routeStatus, setRouteStatus] = useState<SuggestOptimizedRouteOutput | null>(null);
-  const [isRouteStatusLoading, setIsRouteStatusLoading] = useState(false);
-
+  
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,40 +170,6 @@ export default function DepartureDashboard() {
   const handleDelete = (departure: Departure) => {
     setDeletingDeparture(departure);
     setIsDeleteDialogOpen(true);
-  };
-
-  const handleShowRouteStatus = async (departure: Departure) => {
-    setSelectedDepartureForStatus(departure);
-    setIsRouteStatusDialogOpen(true);
-    setIsRouteStatusLoading(true);
-    setRouteStatus(null);
-    try {
-      const result = await suggestOptimizedRoute({
-        currentLocation: "Sky Gate Derby DE74 2BB",
-        destination: departure.destination,
-        via: departure.via,
-        trafficData: "Assume current conditions",
-      });
-      setRouteStatus(result);
-    } catch (e: any) {
-      console.error(e);
-      let description = "Could not retrieve traffic warnings. Please try again.";
-       if (e.message?.includes('429')) {
-          description = "You have reached the API request limit. Please wait one minute before trying again.";
-      } else if (e.message?.toLowerCase().includes('api key') || e.message?.toLowerCase().includes('permission')) {
-          description = "The API key for the AI service is not valid or not configured. Check the .env file.";
-      } else if (e.message?.includes('NOT_FOUND')) {
-          description = "The AI model was not found. This might be a configuration issue. Please contact support."
-      }
-      toast({
-        variant: "destructive",
-        title: "Error Fetching Route Status",
-        description: description,
-      });
-      setIsRouteStatusDialogOpen(false); 
-    } finally {
-      setIsRouteStatusLoading(false);
-    }
   };
 
   const confirmDelete = async () => {
@@ -556,17 +516,6 @@ export default function DepartureDashboard() {
                             <TableCell className="text-right">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => handleShowRouteStatus(d)} disabled={d.status === 'Departed'}>
-                                    <TrafficCone className="h-4 w-4 text-orange-400" />
-                                    <span className="sr-only">Route Status</span>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Check Route Status</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
                                   <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
                                     <Edit className="h-4 w-4" />
                                     <span className="sr-only">Edit</span>
@@ -627,13 +576,6 @@ export default function DepartureDashboard() {
           onOpenChange={setIsDialogOpen}
           departure={editingDeparture}
           onSave={handleSave}
-        />
-        <RouteStatusDialog
-          isOpen={isRouteStatusDialogOpen}
-          onOpenChange={setIsRouteStatusDialogOpen}
-          departure={selectedDepartureForStatus}
-          routeStatus={routeStatus}
-          isLoading={isRouteStatusLoading}
         />
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>

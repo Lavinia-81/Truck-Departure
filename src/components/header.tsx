@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Route, Monitor, Menu, FileUp, FileDown } from "lucide-react";
+import { Monitor, Menu, FileUp, FileDown } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -12,7 +12,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Separator } from "./ui/separator";
 
 interface HeaderProps {
     onImport: () => void;
@@ -41,15 +40,10 @@ export default function Header({ onImport, onExport }: HeaderProps) {
               <Button variant="outline" onClick={onImport}><FileUp className="mr-2 h-4 w-4" /> Import</Button>
               <Button variant="outline" onClick={onExport}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
           </div>
-          <Separator />
            <nav className="grid gap-4 text-lg font-medium mt-4">
             <Link href="/display" target="_blank" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
               <Monitor className="h-5 w-5" />
               Public Display
-            </Link>
-            <Link href="/optimize" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-              <Route className="h-5 w-5" />
-              Route Optimizer
             </Link>
           </nav>
         </SheetContent>
@@ -81,12 +75,6 @@ export default function Header({ onImport, onExport }: HeaderProps) {
           <Link href="/display" target="_blank">
             <Monitor className="mr-2 h-4 w-4" />
             Public Display
-          </Link>
-        </Button>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/optimize">
-            <Route className="mr-2 h-4 w-4" />
-            Route Optimizer
           </Link>
         </Button>
       </div>
