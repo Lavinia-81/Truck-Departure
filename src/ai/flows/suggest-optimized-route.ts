@@ -57,8 +57,8 @@ const prompt = ai.definePrompt({
   // This is the most stable and widely available model.
   // The 404 errors were likely due to configuration issues, not the model name.
   // If issues persist, verify the model name in your Google AI Studio account.
-  //
-  model: 'gemini-pro',
+  // The name should be prefixed with 'googleai/'.
+  model: 'googleai/gemini-pro',
   // =================================================================
 
   prompt: `You are a truck route optimization expert. Analyze the following details and provide the best route.
