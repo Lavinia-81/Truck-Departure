@@ -29,13 +29,8 @@ import { STATUSES } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
-import { ThemeToggle } from './theme-toggle';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Input } from './ui/input';
-
-// --- Cheie Secretă pentru Admin ---
-// Introduceți această cheie pentru a accesa panoul.
-const ADMIN_SECRET_KEY = 'secret123';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -72,70 +67,11 @@ const carrierStyles: Record<string, CarrierStyle> = {
     },
 };
 
-const LoginScreen = ({ onLogin }: { onLogin: (key: string) => void }) => {
-    const [key, setKey] = useState('');
-    const [error, setError] = useState<string | null>(null);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (key === ADMIN_SECRET_KEY) {
-            onLogin(key);
-        } else {
-            setError('Invalid secret key.');
-        }
-    };
-
-    return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm">
-             <form onSubmit={handleSubmit}>
-                <CardHeader>
-                    <CardTitle>Admin Access</CardTitle>
-                    <CardDescription>Please enter the secret key to manage departures.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                    {error && (
-                        <Alert variant="destructive">
-                            <Terminal className="h-4 w-4" />
-                            <AlertTitle>Login Error</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-                    <div className="relative">
-                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                       <Input 
-                           type="password"
-                           placeholder="Secret Key"
-                           className="pl-10"
-                           value={key}
-                           onChange={(e) => {
-                               setKey(e.target.value);
-                               if (error) setError(null);
-                           }}
-                       />
-                    </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                    <Button type="submit" className="w-full">
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Login
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                        Access is restricted. Please contact an administrator if you have issues.
-                    </p>
-                </CardFooter>
-            </form>
-        </Card>
-    </div>
-)};
-
 
 export default function DepartureDashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
   const firestore = useFirestore();
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    (firestore && isAuthenticated) ? collection(firestore, 'dispatchSchedules') : null
+    firestore ? collection(firestore, 'dispatchSchedules') : null
   );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -146,16 +82,6 @@ export default function DepartureDashboard() {
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleLogin = (key: string) => {
-    if (key === ADMIN_SECRET_KEY) {
-        setIsAuthenticated(true);
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-  };
   
   const handleAddNew = () => {
     setEditingDeparture(null);
@@ -418,17 +344,13 @@ export default function DepartureDashboard() {
   
   const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
 
-  if (isLoadingDepartures && isAuthenticated) {
+  if (isLoadingDepartures) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <p className="mt-4 text-muted-foreground">Loading data...</p>
         </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />;
   }
 
   return (
@@ -454,9 +376,6 @@ export default function DepartureDashboard() {
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Add Departure
                   </Button>
-                   <Button variant="outline" size="sm" onClick={handleLogout}>
-                     <LogOut className="mr-2 h-4 w-4" /> Logout
-                   </Button>
               </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col overflow-hidden">
@@ -565,7 +484,6 @@ export default function DepartureDashboard() {
                 </div>
               ))}
               <div className="ml-auto flex items-center gap-4 mt-2 md:mt-0">
-                <ThemeToggle />
                 <Button size="sm" variant="destructive" onClick={() => setIsClearDialogOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear All
