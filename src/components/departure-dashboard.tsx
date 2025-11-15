@@ -78,7 +78,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 const LoginScreen = ({ onLogin, error, isAuthenticating }: { onLogin: () => void, error: string | null, isAuthenticating: boolean }) => (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-md">
             <CardHeader>
                 <CardTitle>Admin Dashboard</CardTitle>
                 <CardDescription>Please log in to manage departures.</CardDescription>
@@ -156,31 +156,33 @@ export default function DepartureDashboard() {
   }, [auth]);
 
   useEffect(() => {
-    if (!auth) return;
-    if (isAuthenticating) { // Only run this if we are expecting a redirect result
-        getRedirectResult(auth)
-        .then((result) => {
-            if (result) {
-                // User has been redirected back from Google.
-                // onAuthStateChanged will handle setting the user state.
-            }
-            setIsAuthenticating(false);
-        })
-        .catch((error) => {
-            console.error("Login redirect failed:", error);
-            let errorMessage = "An unknown error occurred during login.";
-            if (error.code === 'auth/unauthorized-domain') {
-                 const authDomain = auth.config.authDomain;
-                 errorMessage = `Authorization error. Please ensure BOTH of the following are in your Firebase project's 'Authorized domains' list: \n1. The app domain: ${window.location.hostname}\n2. The Firebase auth domain: ${authDomain}`;
-            } else if (error.code === 'auth/popup-blocked') {
-                errorMessage = "The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again. Look for an icon in your address bar.";
-            } else {
-                errorMessage = error.message;
-            }
-            setLoginError(errorMessage);
-            setIsAuthenticating(false);
-        });
-    }
+    if (!auth || !isAuthenticating) return;
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+            // User successfully signed in.
+        }
+        setIsAuthenticating(false);
+      })
+      .catch((error) => {
+        console.error("Login redirect failed:", error);
+        let errorMessage = "An unknown error occurred during login.";
+        
+        if (error.code === 'auth/unauthorized-domain') {
+            const authDomain = auth.config.authDomain;
+            errorMessage = `This domain is not authorized. Please add BOTH of the following to your Firebase project's 'Authorized domains' list:\n1. ${window.location.hostname}\n2. ${authDomain}`;
+        } else if (error.code === 'auth/popup-blocked') {
+            errorMessage = "The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again.";
+        } else if (error.code === 'auth/operation-not-allowed') {
+            errorMessage = "Google Sign-In is not enabled for this project. Please go to your Firebase project console, navigate to 'Authentication > Sign-in method', and enable the Google provider.";
+        } else {
+            errorMessage = error.message;
+        }
+
+        setLoginError(errorMessage);
+        setIsAuthenticating(false);
+      });
   }, [auth, isAuthenticating]);
 
 
@@ -202,7 +204,26 @@ export default function DepartureDashboard() {
     const provider = new GoogleAuthProvider();
     setIsAuthenticating(true);
     setLoginError(null);
-    await signInWithRedirect(auth, provider);
+    try {
+        await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+        console.error("Login redirect failed:", error);
+        let errorMessage = "An unknown error occurred during login.";
+        
+        if (error.code === 'auth/unauthorized-domain') {
+            const authDomain = auth.config.authDomain;
+            errorMessage = `This domain is not authorized. Please add BOTH of the following to your Firebase project's 'Authorized domains' list:\n1. ${window.location.hostname}\n2. ${authDomain}`;
+        } else if (error.code === 'auth/popup-blocked') {
+            errorMessage = "The login pop-up was blocked by your browser. Please allow pop-ups for this site and try again.";
+        } else if (error.code === 'auth/operation-not-allowed') {
+            errorMessage = "Google Sign-In is not enabled for this project. Please go to your Firebase project console, navigate to 'Authentication > Sign-in method', and enable the Google provider.";
+        } else {
+            errorMessage = error.message;
+        }
+
+        setLoginError(errorMessage);
+        setIsAuthenticating(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -720,7 +741,7 @@ export default function DepartureDashboard() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">Yes, delete everything</AlertDialogAction>
+              <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">Clear All</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -728,3 +749,5 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
+
+    
