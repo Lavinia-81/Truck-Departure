@@ -1,7 +1,7 @@
 'use client';
 import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
 import { Firestore, getFirestore } from 'firebase/firestore';
-import { firebaseConfig } from './config-local'; 
+import { firebaseConfig } from '@/config/keys'; 
 
 let firebaseApp: FirebaseApp;
 let firestore: Firestore;
@@ -12,7 +12,7 @@ export function initializeFirebase(): {
 } {
   if (getApps().length === 0) {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
-      throw new Error('Firebase configuration is invalid. Please fill in your credentials in src/firebase/config-local.ts');
+      throw new Error('Firebase configuration is invalid. Please fill in your credentials in src/config/keys.ts');
     }
     firebaseApp = initializeApp(firebaseConfig);
   } else {

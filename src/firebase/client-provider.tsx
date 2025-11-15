@@ -4,7 +4,7 @@ import { FirebaseProvider, initializeFirebase } from '.';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { firebaseConfig } from './config-local'; 
+import { firebaseConfig } from '@/config/keys'; 
 
 type FirebaseContextState = {
   firebaseApp: FirebaseApp;
@@ -23,7 +23,7 @@ export function FirebaseClientProvider({
   useEffect(() => {
     try {
       if (!firebaseConfig || firebaseConfig.apiKey === "YOUR_API_KEY_HERE" || !firebaseConfig.projectId) {
-        throw new Error("Firebase configuration is not available. Please fill in your credentials in src/firebase/config-local.ts");
+        throw new Error("Firebase configuration is not available. Please fill in your credentials in src/config/keys.ts");
       }
       const context = initializeFirebase();
       setFirebaseContext(context);
