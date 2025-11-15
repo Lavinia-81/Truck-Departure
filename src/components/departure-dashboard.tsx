@@ -197,7 +197,7 @@ export default function DepartureDashboard() {
        if (e.message?.includes('429')) {
           description = "You have reached the API request limit. Please wait one minute before trying again.";
       } else if (e.message?.toLowerCase().includes('api key') || e.message?.toLowerCase().includes('permission')) {
-          description = "The API key for the AI service is not valid or not configured. Check the .env.local file.";
+          description = "The API key for the AI service is not valid or not configured. Check the .env file.";
       } else if (e.message?.includes('NOT_FOUND')) {
           description = "The AI model was not found. This might be a configuration issue. Please contact support."
       }
