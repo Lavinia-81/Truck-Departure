@@ -75,7 +75,7 @@ export default function RouteOptimizerPage() {
                 description = "You have reached the API request limit. Please wait one minute before trying again.";
             } else if (errorMessage.toLowerCase().includes('api key') || errorMessage.toLowerCase().includes('permission')) {
                 description = "The API key for the AI service is not valid or not configured. Check the .env file.";
-            } else if (errorMessage.includes('NOT_FOUND')) {
+            } else if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('is not found')) {
                 description = "The AI model was not found. This might be a configuration issue. Please contact support."
             }
 

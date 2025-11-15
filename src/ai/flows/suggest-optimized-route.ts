@@ -62,7 +62,7 @@ const prompt = ai.definePrompt({
   name: 'suggestOptimizedRoutePrompt',
   input: {schema: SuggestOptimizedRouteInputSchema},
   output: {schema: SuggestOptimizedRouteOutputSchema},
-  model: 'googleai/gemini-1.5-flash-latest',
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are a truck route optimization expert. Analyze the following details and provide the best route.
 - Current Location: {{{currentLocation}}}
 - Destination: {{{destination}}}
