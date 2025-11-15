@@ -11,8 +11,9 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
 
-// Initialize Genkit AI instance with the API key from environment variables.
-// Next.js automatically loads .env files into process.env.
+// Initialize Genkit AI instance.
+// Note: The API key is read from the `GEMINI_API_KEY` environment variable.
+// Next.js automatically loads this from the `.env` file.
 const ai = genkit({
   plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
 });
