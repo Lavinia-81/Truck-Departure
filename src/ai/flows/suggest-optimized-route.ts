@@ -17,9 +17,6 @@ const apiKey = process.env.GEMINI_API_KEY;
 let ai: ReturnType<typeof genkit>;
 
 if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-  console.warn(
-    'GEMINI_API_KEY is not set in your .env file. AI features will not be available.'
-  );
   ai = genkit({plugins: []}); // Initialize with no plugins if key is missing
 } else {
   ai = genkit({
@@ -62,7 +59,7 @@ const prompt = ai.definePrompt({
   name: 'suggestOptimizedRoutePrompt',
   input: {schema: SuggestOptimizedRouteInputSchema},
   output: {schema: SuggestOptimizedRouteOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-pro',
   prompt: `You are a truck route optimization expert. Analyze the following details and provide the best route.
 - Current Location: {{{currentLocation}}}
 - Destination: {{{destination}}}
