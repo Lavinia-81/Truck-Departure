@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Edit, Trash2, PlusCircle, Ship, Route, LogIn, LogOut, KeyRound } from 'lucide-react';
+import { Edit, Trash2, PlusCircle, Ship, Route, LogIn, LogOut, KeyRound, TrafficCone } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -32,6 +32,8 @@ import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 
 import { ThemeToggle } from './theme-toggle';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Input } from './ui/input';
+import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
+import { RouteStatusDialog } from './route-status-dialog';
 
 // --- Cheie Secretă pentru Admin ---
 // Introduceți această cheie pentru a accesa panoul.
@@ -144,6 +146,12 @@ export default function DepartureDashboard() {
   const [deletingDeparture, setDeletingDeparture] = useState<Departure | null>(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   
+  const [isRouteStatusDialogOpen, setIsRouteStatusDialogOpen] = useState(false);
+  const [routeStatus, setRouteStatus] = useState<SuggestOptimizedRouteOutput | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationError, setOptimizationError] = useState<string | null>(null);
+
+
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -170,6 +178,27 @@ export default function DepartureDashboard() {
   const handleDelete = (departure: Departure) => {
     setDeletingDeparture(departure);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleShowRouteStatus = async (departure: Departure) => {
+    setIsOptimizing(true);
+    setOptimizationError(null);
+    setRouteStatus(null);
+    setIsRouteStatusDialogOpen(true);
+    
+    try {
+      const result = await suggestOptimizedRoute({
+        destination: departure.destination,
+        collectionTime: departure.collectionTime
+      });
+      setRouteStatus(result);
+    } catch (error: any) {
+      console.error("Route optimization failed:", error);
+      const friendlyMessage = error.message || "An unexpected error occurred.";
+      setOptimizationError(friendlyMessage);
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   const confirmDelete = async () => {
@@ -514,28 +543,41 @@ export default function DepartureDashboard() {
                             <TableCell>{d.scheduleNumber}</TableCell>
                             <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
                             <TableCell className="text-center">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edit Departure</p>
-                                </TooltipContent>
-                              </Tooltip>
-                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete Departure</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <div className="flex items-center justify-center">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
+                                      <Edit className="h-4 w-4" />
+                                      <span className="sr-only">Edit</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Edit Departure</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete Departure</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-amber-500 hover:text-amber-600" onClick={() => handleShowRouteStatus(d)}>
+                                      <TrafficCone className="h-4 w-4" />
+                                      <span className="sr-only">Check Route Status</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>AI Route Optimizer</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -577,6 +619,13 @@ export default function DepartureDashboard() {
           departure={editingDeparture}
           onSave={handleSave}
         />
+        <RouteStatusDialog
+          isOpen={isRouteStatusDialogOpen}
+          onOpenChange={setIsRouteStatusDialogOpen}
+          data={routeStatus}
+          isLoading={isOptimizing}
+          error={optimizationError}
+        />
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -584,7 +633,7 @@ export default function DepartureDashboard() {
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the departure
                 for <span className="font-semibold">{deletingDeparture?.carrier}</span> with trailer <span className="font-semibold">{deletingDeparture?.trailerNumber}</span>.
-              </AdialogDescription>
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
