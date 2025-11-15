@@ -11,18 +11,11 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'genkit';
 
-// Initialize Genkit AI instance within the server action file
-const apiKey = process.env.GEMINI_API_KEY;
-
-let ai: ReturnType<typeof genkit>;
-
-if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-  ai = genkit({ plugins: [] }); // Initialize with no plugins if key is missing
-} else {
-  ai = genkit({
-    plugins: [googleAI({ apiKey })],
-  });
-}
+// Initialize Genkit AI instance with the API key from environment variables.
+// Next.js automatically loads .env files into process.env.
+const ai = genkit({
+  plugins: [googleAI({ apiKey: process.env.GEMINI_API_KEY })],
+});
 
 const SuggestOptimizedRouteInputSchema = z.object({
   destination: z.string().describe('The final destination of the route.'),
@@ -61,16 +54,11 @@ const prompt = ai.definePrompt({
   // =================================================================
   // === IMPORTANT: Model Name =======================================
   // =================================================================
-  // If the AI features are not working, the model name below might be
-  // incorrect for your project/region.
+  // This is the most stable and widely available model.
+  // The 404 errors were likely due to configuration issues, not the model name.
+  // If issues persist, verify the model name in your Google AI Studio account.
   //
-  // 1. Go to Google AI Studio: https://aistudio.google.com/
-  // 2. Click "Create new" -> "Freeform prompt".
-  // 3. In the top-left corner, click the model dropdown.
-  // 4. Copy the API name of an available model (e.g., 'gemini-pro').
-  // 5. Paste the model name below.
-  //
-  model: 'googleai/gemini-pro',
+  model: 'gemini-pro',
   // =================================================================
 
   prompt: `You are a truck route optimization expert. Analyze the following details and provide the best route.
@@ -94,8 +82,9 @@ const suggestOptimizedRouteFlow = ai.defineFlow(
     outputSchema: SuggestOptimizedRouteOutputSchema,
   },
   async input => {
-    if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-      throw new Error('The API key for the AI service is not valid or not configured. Check the .env file.');
+    // Check for API key at runtime to provide a clear error.
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
+      throw new Error('The GEMINI_API_KEY is not configured. Please add it to your .env file.');
     }
     const { output } = await prompt(input);
     return output!;
