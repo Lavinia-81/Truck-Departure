@@ -113,7 +113,7 @@ export function RouteStatusDialog({ isOpen, onOpenChange, departure, routeStatus
                 <div className="flex flex-col items-center justify-center gap-4 text-destructive">
                      <TrafficCone className="h-10 w-10 "/>
                     <p className="font-semibold">Could not retrieve route status</p>
-                    <p className="text-sm text-center">There was an error fetching the live traffic data. Please try again.</p>
+                    <p className="text-sm text-center">There was an error fetching the live traffic data. Please check your API key and try again.</p>
                 </div>
             )}
         </div>

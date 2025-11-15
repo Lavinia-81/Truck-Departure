@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Edit, Trash2, PlusCircle, Ship, Route, LogIn, LogOut, KeyRound } from 'lucide-react';
+import { Edit, Trash2, PlusCircle, Ship, Route, LogIn, LogOut, KeyRound, TrafficCone } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -32,6 +32,8 @@ import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 
 import { ThemeToggle } from './theme-toggle';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Input } from './ui/input';
+import { RouteStatusDialog } from './route-status-dialog';
+import { suggestOptimizedRoute, type SuggestOptimizedRouteOutput } from '@/ai/flows/suggest-optimized-route';
 
 // --- Cheie Secretă pentru Admin ---
 // Introduceți această cheie pentru a accesa panoul.
@@ -144,6 +146,12 @@ export default function DepartureDashboard() {
   const [deletingDeparture, setDeletingDeparture] = useState<Departure | null>(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   
+  // State for AI Route Optimization
+  const [isRouteStatusDialogOpen, setIsRouteStatusDialogOpen] = useState(false);
+  const [selectedDepartureForRoute, setSelectedDepartureForRoute] = useState<Departure | null>(null);
+  const [routeStatus, setRouteStatus] = useState<SuggestOptimizedRouteOutput | null>(null);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -203,6 +211,41 @@ export default function DepartureDashboard() {
         setDeletingDeparture(null);
     }
   };
+  
+    const handleShowRouteStatus = async (departure: Departure) => {
+        setSelectedDepartureForRoute(departure);
+        setIsRouteStatusDialogOpen(true);
+        setIsRouteLoading(true);
+        setRouteStatus(null);
+        
+        try {
+            const res = await suggestOptimizedRoute({
+                currentLocation: 'Sky Gate Derby DE74 2BB', // Hardcoded start location
+                destination: departure.destination,
+                via: departure.via || undefined,
+            });
+            setRouteStatus(res);
+        } catch (error: any) {
+            console.error("Route optimization failed:", error);
+            let description = "Could not retrieve route. Please try again.";
+            const errorMessage = typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : String(error);
+
+             if (errorMessage.includes('404')) {
+                description = "The AI model was not found. Please check the model name in the code and your Google AI Studio account.";
+            } else if (errorMessage.toLowerCase().includes('api key')) {
+                description = "The API key for the AI service is not valid or not configured. Check the .env file.";
+            }
+            toast({
+                variant: 'destructive',
+                title: 'Route Optimization Failed',
+                description: description,
+            });
+            setRouteStatus(null); // Ensure dialog shows an error state
+        } finally {
+            setIsRouteLoading(false);
+        }
+    };
+
 
   const handleSave = async (savedDeparture: Omit<Departure, 'id'> & { id?: string }) => {
     if (!firestore) return;
@@ -475,7 +518,7 @@ export default function DepartureDashboard() {
                       <TableHead className="text-primary-foreground">Driver</TableHead>
                       <TableHead className="text-primary-foreground">Schedule No.</TableHead>
                       <TableHead className="text-primary-foreground">Status</TableHead>
-                      <TableHead className="text-right text-primary-foreground">Actions</TableHead>
+                      <TableHead className="text-center text-primary-foreground">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -513,7 +556,16 @@ export default function DepartureDashboard() {
                             <TableCell>{d.driverName || 'N/A'}</TableCell>
                             <TableCell>{d.scheduleNumber}</TableCell>
                             <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-center">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => handleShowRouteStatus(d)}>
+                                        <TrafficCone className="h-4 w-4 text-orange-500" />
+                                        <span className="sr-only">Check Route Status</span>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Check Route Status (AI)</p></TooltipContent>
+                              </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
@@ -606,6 +658,13 @@ export default function DepartureDashboard() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <RouteStatusDialog
+            isOpen={isRouteStatusDialogOpen}
+            onOpenChange={setIsRouteStatusDialogOpen}
+            departure={selectedDepartureForRoute}
+            routeStatus={routeStatus}
+            isLoading={isRouteLoading}
+        />
       </div>
     </TooltipProvider>
   );
