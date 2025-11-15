@@ -600,7 +600,7 @@ export default function DepartureDashboard() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete all departure data from the database.
-              </AlertDialogDescription>
+              </describedescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
