@@ -3,6 +3,7 @@ import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { createContext, useContext } from 'react';
 import { AuthProvider } from './auth/auth-provider';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 const FirebaseContext = createContext<{
   firebaseApp: FirebaseApp;
@@ -21,6 +22,7 @@ export function FirebaseProvider({
     <FirebaseContext.Provider value={value}>
         <AuthProvider>
             {children}
+            <FirebaseErrorListener />
         </AuthProvider>
     </FirebaseContext.Provider>
   );

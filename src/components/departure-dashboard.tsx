@@ -28,6 +28,8 @@ import { STATUSES } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -67,7 +69,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DepartureDashboard() {
   const firestore = useFirestore();
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
+  const { data: departures, isLoading: isLoadingDepartures, error } = useCollection<Departure>(
     firestore ? collection(firestore, 'dispatchSchedules') : null
   );
 
@@ -79,6 +81,18 @@ export default function DepartureDashboard() {
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (error) {
+    // This will be caught by the FirebaseErrorListener if it's a permission error
+    // For other errors, we can show a toast or a message.
+    if (!(error instanceof FirestorePermissionError)) {
+        toast({
+            variant: "destructive",
+            title: "Error Loading Data",
+            description: error.message,
+        });
+    }
+  }
   
   const handleAddNew = () => {
     setEditingDeparture(null);
@@ -95,7 +109,7 @@ export default function DepartureDashboard() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!deletingDeparture || !deletingDeparture.id || !firestore) {
         toast({
             variant: "destructive",
@@ -107,69 +121,80 @@ export default function DepartureDashboard() {
         return;
     }
 
-    try {
-        const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
-        await deleteDoc(docRef);
-        toast({
-            title: "Departure Deleted",
-            description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
+    const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
+    
+    deleteDoc(docRef)
+        .then(() => {
+            toast({
+                title: "Departure Deleted",
+                description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
+            });
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
-    } catch (error) {
-        console.error("Error deleting departure: ", error);
-        toast({
-            variant: "destructive",
-            title: "Deletion Failed",
-            description: "Could not delete the departure from the database.",
-        });
-    } finally {
-        setIsDeleteDialogOpen(false);
-        setDeletingDeparture(null);
-    }
+
+    setIsDeleteDialogOpen(false);
+    setDeletingDeparture(null);
   };
   
-  const handleSave = async (savedDeparture: Omit<Departure, 'id'> & { id?: string }) => {
+  const handleSave = (savedDeparture: Omit<Departure, 'id'> & { id?: string }) => {
     if (!firestore) return;
 
     const isNew = !savedDeparture.id;
     
-    try {
-      if (isNew) {
-          const collectionRef = collection(firestore, 'dispatchSchedules');
-          await addDoc(collectionRef, savedDeparture);
-          toast({
-              title: "Departure Added",
-              description: `A new departure for ${savedDeparture.carrier} has been added.`
-          });
-      } else {
-          const docRef = doc(firestore, 'dispatchSchedules', savedDeparture.id);
-          const originalDeparture = departures?.find(d => d.id === savedDeparture.id);
-          
-          await setDoc(docRef, savedDeparture);
-
-          if (originalDeparture?.status !== 'Departed' && savedDeparture.status === 'Departed') {
-              toast({
-                  title: "Truck Departed",
-                  description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
-              });
-          } else if (originalDeparture?.status !== savedDeparture.status) {
-            toast({
-                title: "Status Updated",
-                description: `Departure for ${savedDeparture.carrier} is now ${savedDeparture.status}.`
+    if (isNew) {
+        const collectionRef = collection(firestore, 'dispatchSchedules');
+        addDoc(collectionRef, savedDeparture)
+            .then(() => {
+                toast({
+                    title: "Departure Added",
+                    description: `A new departure for ${savedDeparture.carrier} has been added.`
+                });
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: collectionRef.path,
+                    operation: 'create',
+                    requestResourceData: savedDeparture,
+                });
+                errorEmitter.emit('permission-error', permissionError);
             });
-          } else {
-            toast({
-                title: "Departure Updated",
-                description: `The departure for ${savedDeparture.carrier} has been updated.`
+    } else {
+        const docRef = doc(firestore, 'dispatchSchedules', savedDeparture.id!);
+        const originalDeparture = departures?.find(d => d.id === savedDeparture.id);
+        
+        setDoc(docRef, savedDeparture)
+            .then(() => {
+                if (originalDeparture?.status !== 'Departed' && savedDeparture.status === 'Departed') {
+                    toast({
+                        title: "Truck Departed",
+                        description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
+                    });
+                } else if (originalDeparture?.status !== savedDeparture.status) {
+                  toast({
+                      title: "Status Updated",
+                      description: `Departure for ${savedDeparture.carrier} is now ${savedDeparture.status}.`
+                  });
+                } else {
+                  toast({
+                      title: "Departure Updated",
+                      description: `The departure for ${savedDeparture.carrier} has been updated.`
+                  });
+                }
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: docRef.path,
+                    operation: 'update',
+                    requestResourceData: savedDeparture,
+                });
+                errorEmitter.emit('permission-error', permissionError);
             });
-          }
-      }
-    } catch (error) {
-       console.error("Error saving departure:", error);
-       toast({
-         variant: "destructive",
-         title: "Save Failed",
-         description: "Could not save the departure to the database.",
-       });
     }
   };
 
@@ -277,12 +302,25 @@ export default function DepartureDashboard() {
               const docRef = doc(collectionRef); // Automatically generate new ID
               batch.set(docRef, dep);
             });
-            await batch.commit();
+            
+            batch.commit()
+              .then(() => {
+                toast({
+                    title: "Import Successful",
+                    description: `${newDepartures.length} departures have been added to Firestore.`,
+                });
+              })
+              .catch(async (serverError) => {
+                  // This is a simplified error for batches. A real implementation might
+                  // need to be more specific if it could identify which doc failed.
+                  const permissionError = new FirestorePermissionError({
+                      path: collectionRef.path,
+                      operation: 'create', // Batch write implies creating docs
+                      requestResourceData: { note: `Batch import of ${newDepartures.length} documents.` },
+                  });
+                  errorEmitter.emit('permission-error', permissionError);
+              });
 
-            toast({
-                title: "Import Successful",
-                description: `${newDepartures.length} departures have been added to Firestore.`,
-            });
         } else {
              toast({
                 variant: "destructive",
@@ -322,18 +360,29 @@ export default function DepartureDashboard() {
         querySnapshot.forEach(doc => {
             batch.delete(doc.ref);
         });
-        await batch.commit();
-        toast({
-            title: "Clearance Complete",
-            description: "All departure data has been deleted from Firestore."
+
+        batch.commit()
+            .then(() => {
+                toast({
+                    title: "Clearance Complete",
+                    description: "All departure data has been deleted from Firestore."
+                });
+            })
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: collectionRef.path,
+                    operation: 'delete', // Batch delete
+                    requestResourceData: { note: `Batch delete of ${querySnapshot.size} documents.` },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
+    } catch (error: any) {
+        // This outer catch is for getDocs, which is a read operation
+        const permissionError = new FirestorePermissionError({
+            path: 'dispatchSchedules',
+            operation: 'list',
         });
-    } catch (error) {
-        console.error("Error clearing all data:", error);
-        toast({
-            variant: "destructive",
-            title: "Clearance Failed",
-            description: "Could not delete all departure data. Please try again."
-        });
+        errorEmitter.emit('permission-error', permissionError);
     }
     
     setIsClearDialogOpen(false);
@@ -527,5 +576,3 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
-
-    

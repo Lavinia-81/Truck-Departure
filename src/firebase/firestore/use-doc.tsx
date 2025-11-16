@@ -6,19 +6,9 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
-export function useDoc<T>(path: string): {
-  data: (T & { id: string }) | null;
-  isLoading: boolean;
-  error: Error | null;
-};
-export function useDoc<T>(
-  ref: DocumentReference | null
-): {
-  data: (T & { id: string }) | null;
-  isLoading: boolean;
-  error: Error | null;
-};
 export function useDoc<T>(
   pathOrRef: string | DocumentReference | null
 ): {
@@ -59,8 +49,12 @@ export function useDoc<T>(
         setError(null);
       },
       (err) => {
-        console.error(err);
-        setError(err);
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setError(permissionError);
       }
     );
 
