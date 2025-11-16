@@ -7,7 +7,6 @@ import { Button } from "./ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -32,9 +31,6 @@ export default function Header({ onImport, onExport }: HeaderProps) {
         <SheetContent side="left" className="flex flex-col">
           <SheetHeader>
             <SheetTitle>Actions</SheetTitle>
-            <SheetDescription>
-              Manage departures and app navigation.
-            </SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-3 py-4">
               <Button variant="outline" onClick={onImport}><FileUp className="mr-2 h-4 w-4" /> Import</Button>

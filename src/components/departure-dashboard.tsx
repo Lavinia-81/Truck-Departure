@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Trash2, PlusCircle, Ship, Route } from 'lucide-react';
+import { Edit, Trash2, PlusCircle, Ship, Route, Loader2, Package, Truck } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -24,7 +24,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Header from './header';
-import { Loader2, Package, Truck } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useFirestore } from '@/firebase';
