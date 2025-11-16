@@ -358,7 +358,7 @@ export default function DepartureDashboard() {
           onExport={handleExport}
         />
         <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
-          <Card className="flex-1 flex flex-col overflow-hidden bg-card">
+          <Card className="flex-1 flex flex-col overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between gap-2 md:gap-4">
                <div className="flex items-center gap-4">
                 <CardTitle>Departures</CardTitle>
@@ -527,3 +527,5 @@ export default function DepartureDashboard() {
     </TooltipProvider>
   );
 }
+
+    
