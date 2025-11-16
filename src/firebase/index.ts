@@ -2,13 +2,16 @@
 import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
 import { Firestore, getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './config-local'; 
+import { getAuth, Auth } from 'firebase/auth';
 
 let firebaseApp: FirebaseApp;
 let firestore: Firestore;
+let auth: Auth;
 
 export function initializeFirebase(): {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
+  auth: Auth;
 } {
   if (getApps().length === 0) {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
@@ -19,11 +22,13 @@ export function initializeFirebase(): {
     firebaseApp = getApps()[0];
   }
   
+  auth = getAuth(firebaseApp);
   firestore = getFirestore(firebaseApp);
 
-  return { firebaseApp, firestore };
+  return { firebaseApp, firestore, auth };
 }
 
 export * from './provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
+export * from './auth/auth-provider';

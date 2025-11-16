@@ -2,6 +2,7 @@
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { createContext, useContext } from 'react';
+import { AuthProvider } from './auth/auth-provider';
 
 const FirebaseContext = createContext<{
   firebaseApp: FirebaseApp;
@@ -17,7 +18,11 @@ export function FirebaseProvider({
   firestore: Firestore;
 }) {
   return (
-    <FirebaseContext.Provider value={value}>{children}</FirebaseContext.Provider>
+    <FirebaseContext.Provider value={value}>
+        <AuthProvider>
+            {children}
+        </AuthProvider>
+    </FirebaseContext.Provider>
   );
 }
 
