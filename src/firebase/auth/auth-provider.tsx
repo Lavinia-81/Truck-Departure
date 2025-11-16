@@ -31,10 +31,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Check for admin privileges
         const adminDocRef = doc(collection(firestore, 'admins'), user.uid);
         const adminDocSnap = await getDoc(adminDocRef);
-        // Fallback check by email if UID doc doesn't exist
+        
         if (adminDocSnap.exists()) {
              setIsAdmin(true);
         } else {
+            // Fallback check by email if UID doc doesn't exist
             const adminEmailDocRef = doc(firestore, 'admins', user.email!);
             const adminEmailDocSnap = await getDoc(adminEmailDocRef);
             setIsAdmin(adminEmailDocSnap.exists());
@@ -46,16 +47,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     };
 
-    const unsubscribe = onAuthStateChanged(auth, processAuth);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if (firebaseUser) {
+            processAuth(firebaseUser);
+        } else {
+            // If user is null, no need to check admin status
+            processAuth(null);
+        }
+    });
     
-    // Check for redirect result
+    // Handle redirect result
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
-            processAuth(result.user);
+            // This is handled by onAuthStateChanged, but we can set loading to false sooner
+            // if we get a result here.
         } else {
-            // If no redirect result, onAuthStateChanged will handle it.
-            // This is to avoid flicker on initial load.
+            // If no redirect and no current user, we are not in a login flow.
             if(auth.currentUser === null) {
                 setLoading(false);
             }
@@ -63,13 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch((error) => {
         console.error("Error during redirect result:", error);
-        setLoading(false);
+        setLoading(false); // Stop loading on error
       });
 
     return () => unsubscribe();
   }, [auth, firestore]);
 
   const signIn = async () => {
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     await signInWithRedirect(auth, provider);
   };
@@ -79,15 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setIsAdmin(false);
   };
-
-  if (loading) {
-     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading user data...</p>
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={{ user, isAdmin, loading, signIn, signOut }}>
