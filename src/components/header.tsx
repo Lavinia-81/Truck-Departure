@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Monitor, Menu, FileUp, FileDown, LogOut, User as UserIcon } from "lucide-react";
+import { Monitor, Menu, FileUp, FileDown, LogOut, User as UserIcon, Users } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -51,6 +51,10 @@ export default function Header({ onImport, onExport }: HeaderProps) {
             <Link href="/display" target="_blank" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
               <Monitor className="h-5 w-5" />
               Public Display
+            </Link>
+            <Link href="/admin/users" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+                <Users className="h-5 w-5" />
+                User Management
             </Link>
           </nav>
            <div className="mt-auto">
@@ -110,6 +114,13 @@ export default function Header({ onImport, onExport }: HeaderProps) {
                   </p>
                 </div>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+               <DropdownMenuItem asChild>
+                <Link href="/admin/users">
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>User Management</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4" />
