@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Trash2, PlusCircle, Ship, Route, Loader2, Package, Truck } from 'lucide-react';
+import { Edit, Trash2, PlusCircle, Ship, Route, Loader2, Package, Truck, TrafficCone } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
@@ -30,6 +30,9 @@ import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { getRoadStatus, RoadStatusOutput } from '@/ai/flows/road-status-flow';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+
 
 const statusColors: Record<Status, string> = {
   Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
@@ -77,6 +80,11 @@ export default function DepartureDashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingDeparture, setDeletingDeparture] = useState<Departure | null>(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+
+  const [isAiStatusOpen, setIsAiStatusOpen] = useState(false);
+  const [aiStatusContent, setAiStatusContent] = useState<RoadStatusOutput | null>(null);
+  const [isAiStatusLoading, setIsAiStatusLoading] = useState(false);
+  const [currentAiDeparture, setCurrentAiDeparture] = useState<Departure | null>(null);
   
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,6 +100,21 @@ export default function DepartureDashboard() {
         });
     }
   }
+
+  const handleAiStatus = async (departure: Departure) => {
+    setCurrentAiDeparture(departure);
+    setIsAiStatusOpen(true);
+    setIsAiStatusLoading(true);
+    try {
+      const status = await getRoadStatus({ destination: departure.destination });
+      setAiStatusContent(status);
+    } catch (e: any) {
+      console.error(e);
+      setAiStatusContent({ status: `Could not retrieve road status. ${e.message || ''}`, eta: "Unknown" });
+    } finally {
+      setIsAiStatusLoading(false);
+    }
+  };
   
   const handleAddNew = () => {
     setEditingDeparture(null);
@@ -479,6 +502,17 @@ export default function DepartureDashboard() {
                               <div className="flex items-center justify-center">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => handleAiStatus(d)}>
+                                      <TrafficCone className="h-4 w-4 text-amber-500" />
+                                      <span className="sr-only">Check Road Status</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Check Road Status (AI)</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
                                       <Edit className="h-4 w-4" />
                                       <span className="sr-only">Edit</span>
@@ -569,6 +603,37 @@ export default function DepartureDashboard() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={isAiStatusOpen} onOpenChange={setIsAiStatusOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>AI Road Status: {currentAiDeparture?.destination}</DialogTitle>
+                    <DialogDescription>
+                        Real-time traffic analysis from The Very Group to {currentAiDeparture?.destination}.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    {isAiStatusLoading ? (
+                        <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <span>Asking AI for road conditions...</span>
+                        </div>
+                    ) : aiStatusContent ? (
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="font-semibold">Traffic Summary</h3>
+                                <p className="text-muted-foreground">{aiStatusContent.status}</p>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold">Estimated Time of Arrival (ETA)</h3>
+                                <p className="text-muted-foreground">{aiStatusContent.eta}</p>
+                            </div>
+                        </div>
+                    ) : null}
+                </div>
+            </DialogContent>
+        </Dialog>
+
       </div>
     </TooltipProvider>
   );
