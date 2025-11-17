@@ -27,7 +27,7 @@ import Header from './header';
 import { STATUSES } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCollection, useFirestore } from '@/firebase';
-import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -69,9 +69,8 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DepartureDashboard() {
   const firestore = useFirestore();
-  const { data: departures, isLoading: isLoadingDepartures, error } = useCollection<Departure>(
-    firestore ? collection(firestore, 'dispatchSchedules') : null
-  );
+  const departuresQuery = firestore ? query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc')) : null;
+  const { data: departures, isLoading: isLoadingDepartures, error } = useCollection<Departure>(departuresQuery);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
@@ -388,8 +387,6 @@ export default function DepartureDashboard() {
     setIsClearDialogOpen(false);
   };
   
-  const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
-
   if (isLoadingDepartures) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
@@ -407,7 +404,7 @@ export default function DepartureDashboard() {
           onExport={handleExport}
         />
         <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
-          <Card className="flex-1 flex flex-col overflow-hidden">
+          <Card className="flex-1 flex flex-col overflow-hidden bg-transparent">
             <CardHeader className="flex flex-row items-center justify-between gap-2 md:gap-4">
                <div className="flex items-center gap-4">
                 <CardTitle>Departures</CardTitle>
@@ -453,8 +450,8 @@ export default function DepartureDashboard() {
                             </div>
                         </TableCell>
                       </TableRow>
-                    ) : sortedDepartures.length > 0 ? (
-                      sortedDepartures.map(d => {
+                    ) : departures && departures.length > 0 ? (
+                      departures.map(d => {
                         const carrierStyle = carrierStyles[d.carrier] || {};
                         return (
                           <TableRow key={d.id} className={cn('transition-colors', statusColors[d.status])}>

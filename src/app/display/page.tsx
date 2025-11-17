@@ -13,7 +13,7 @@ import Clock from '@/components/clock';
 import { STATUSES } from '@/lib/types';
 import './scrolling-animation.css';
 import { useCollection, useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 
 
 const statusColors: Record<Status, string> = {
@@ -59,9 +59,8 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DisplayPage() {
   const firestore = useFirestore();
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(
-    firestore ? collection(firestore, 'dispatchSchedules') : null
-  );
+  const departuresQuery = firestore ? query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc')) : null;
+  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -96,7 +95,7 @@ export default function DisplayPage() {
   }, [departures, isLoadingDepartures]);
 
 
-  const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
+  const sortedDepartures = departures || [];
   
   const renderTableRows = (departuresToRender: Departure[]) => {
     if (!departuresToRender || departuresToRender.length === 0) return null;
