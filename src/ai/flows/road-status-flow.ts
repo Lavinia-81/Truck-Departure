@@ -51,10 +51,14 @@ const roadStatusFlow = ai.defineFlow(
     outputSchema: RoadStatusOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt({
-      input,
+    const { output } = await ai.generate({
       model: googleAI.model('gemini-1.5-flash-preview-0514'),
+      prompt: prompt.render({ input: input }).prompt,
+      output: {
+        schema: RoadStatusOutputSchema,
+      },
     });
+
     return output!;
   }
 );
