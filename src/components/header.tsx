@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Monitor, Menu, FileUp, FileDown, LogOut, LogIn } from "lucide-react";
+import { Monitor, Menu, FileUp, FileDown } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -14,7 +14,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "./theme-toggle";
-import { useAuth } from "@/firebase";
 
 interface HeaderProps {
     onImport: () => void;
@@ -22,8 +21,6 @@ interface HeaderProps {
 }
 
 export default function Header({ onImport, onExport }: HeaderProps) {
-  const { user, isAdmin, signIn, signOut } = useAuth();
-
   return (
     <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-card px-4 py-3 md:px-6">
       {/* Mobile Menu */}
@@ -41,31 +38,18 @@ export default function Header({ onImport, onExport }: HeaderProps) {
               Manage departures and app navigation.
             </SheetDescription>
           </SheetHeader>
-          {isAdmin && (
-            <div className="flex flex-col gap-3 py-4">
-                <Button variant="outline" onClick={onImport}><FileUp className="mr-2 h-4 w-4" /> Import</Button>
-                <Button variant="outline" onClick={onExport}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
-            </div>
-          )}
+          <div className="flex flex-col gap-3 py-4">
+              <Button variant="outline" onClick={onImport}><FileUp className="mr-2 h-4 w-4" /> Import</Button>
+              <Button variant="outline" onClick={onExport}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
+          </div>
            <nav className="grid gap-4 text-lg font-medium mt-4">
             <Link href="/display" target="_blank" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
               <Monitor className="h-5 w-5" />
               Public Display
             </Link>
           </nav>
-           <div className="mt-auto flex items-center justify-between">
+           <div className="mt-auto">
              <ThemeToggle />
-             {user ? (
-                <Button variant="outline" size="sm" onClick={signOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                </Button>
-             ) : (
-                <Button variant="outline" size="sm" onClick={signIn}>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Login
-                </Button>
-             )}
            </div>
         </SheetContent>
       </Sheet>
@@ -84,18 +68,14 @@ export default function Header({ onImport, onExport }: HeaderProps) {
       </div>
 
       <div className="hidden items-center gap-4 ml-auto md:flex">
-        {isAdmin && (
-          <>
-            <Button size="sm" variant="outline" onClick={onImport}>
-                <FileUp className="mr-2 h-4 w-4" />
-                Import
-            </Button>
-            <Button size="sm" variant="outline" onClick={onExport}>
-                <FileDown className="mr-2 h-4 w-4" />
-                Export
-            </Button>
-          </>
-        )}
+        <Button size="sm" variant="outline" onClick={onImport}>
+            <FileUp className="mr-2 h-4 w-4" />
+            Import
+        </Button>
+        <Button size="sm" variant="outline" onClick={onExport}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Export
+        </Button>
         <Button variant="outline" size="sm" asChild>
           <Link href="/display" target="_blank">
             <Monitor className="mr-2 h-4 w-4" />
@@ -103,17 +83,6 @@ export default function Header({ onImport, onExport }: HeaderProps) {
           </Link>
         </Button>
         <ThemeToggle />
-        {user ? (
-            <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-            </Button>
-        ) : (
-             <Button variant="outline" size="sm" onClick={signIn}>
-                <LogIn className="mr-2 h-4 w-4" />
-                Login
-            </Button>
-        )}
       </div>
     </header>
   );
