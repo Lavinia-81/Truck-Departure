@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/firebase';
+import { useAuth } from '@/firebase/auth/auth-provider';
 import { LogIn, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
