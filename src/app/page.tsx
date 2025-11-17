@@ -11,12 +11,14 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // If auth check is done and there's no user, redirect to login.
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
 
-  if (loading || !user) {
+  // Show a loading screen while auth is being checked.
+  if (loading) {
      return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -25,7 +27,8 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAdmin) {
+  // After loading, if there's a user, check if they are an admin.
+  if (user && !isAdmin) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
             <div className="text-center p-8 border rounded-lg">
@@ -37,5 +40,17 @@ export default function AdminPage() {
     )
   }
 
-  return <DepartureDashboard />;
+  // After loading, if user is an admin, show the dashboard.
+  if(user && isAdmin) {
+    return <DepartureDashboard />;
+  }
+
+  // If there's no user and loading is false, the redirect is in progress.
+  // Return null or a loader to prevent rendering anything else.
+  return (
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Redirecting...</p>
+    </div>
+  );
 }

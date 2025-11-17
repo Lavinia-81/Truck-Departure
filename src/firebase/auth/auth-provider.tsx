@@ -3,13 +3,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut, GoogleAuthProvider, signInWithRedirect, getRedirectResult, User } from 'firebase/auth';
 import { useAuthContext } from '@/firebase/provider';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
-import { useFirebaseApp } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
-  loading: boolean;
+  loading: boolean; // True while checking auth state, false once resolved.
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -18,59 +18,71 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const auth = useAuthContext();
-  const app = useFirebaseApp();
-  const firestore = getFirestore(app);
+  const firestore = useFirestore();
   
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true
 
-  const checkAdminStatus = useCallback(async (user: User) => {
-    if (!user.email) return false;
-    // Check for admin doc using UID first
-    const adminUidRef = doc(firestore, 'admins', user.uid);
-    const adminUidSnap = await getDoc(adminUidRef);
-    if (adminUidSnap.exists()) return true;
-
-    // Fallback to checking by email
-    const adminEmailRef = doc(firestore, 'admins', user.email);
-    const adminEmailSnap = await getDoc(adminEmailRef);
-    return adminEmailSnap.exists();
+  const checkAdminStatus = useCallback(async (user: User | null) => {
+    if (!user?.email || !firestore) return false;
+    try {
+        const adminEmailRef = doc(firestore, 'admins', user.email.toLowerCase());
+        const adminEmailSnap = await getDoc(adminEmailRef);
+        return adminEmailSnap.exists();
+    } catch (error) {
+        console.error("Error checking admin status:", error);
+        return false;
+    }
   }, [firestore]);
 
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        const adminStatus = await checkAdminStatus(firebaseUser);
-        setIsAdmin(adminStatus);
-      } else {
-        // This case handles sign-out and initial load before redirect result
-        setUser(null);
-        setIsAdmin(false);
-      }
-      setLoading(false);
-    });
+    if (!auth) {
+        setLoading(false);
+        return;
+    }
 
-    // Handle the redirect result separately to avoid race conditions
-    getRedirectResult(auth).catch((error) => {
-        console.error("Error during redirect result:", error);
-        setLoading(false); // Ensure loading is off even if redirect fails
-    });
+    // This is the key change: we handle the redirect result first.
+    getRedirectResult(auth)
+      .then((result) => {
+        // This will be null if the user just loaded the page without a redirect.
+        // If they come from Google, `result.user` will be populated.
+      })
+      .catch((error) => {
+        console.error("Error from getRedirectResult:", error);
+      })
+      .finally(() => {
+        // After handling the redirect, we set up the regular auth state listener.
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (firebaseUser) {
+            setUser(firebaseUser);
+            const adminStatus = await checkAdminStatus(firebaseUser);
+            setIsAdmin(adminStatus);
+          } else {
+            setUser(null);
+            setIsAdmin(false);
+          }
+          // Only set loading to false AFTER the user state has been determined.
+          setLoading(false);
+        });
+        
+        return unsubscribe;
+      });
 
-    return () => unsubscribe();
   }, [auth, checkAdminStatus]);
 
   const signIn = async () => {
+    if (!auth) return;
     setLoading(true);
     const provider = new GoogleAuthProvider();
     await signInWithRedirect(auth, provider);
   };
 
   const signOut = async () => {
+    if (!auth) return;
     await firebaseSignOut(auth);
-    // State will be cleared by onAuthStateChanged listener
+    // The onAuthStateChanged listener will handle clearing the user state.
   };
 
   return (
