@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Monitor, Menu, FileUp, FileDown } from "lucide-react";
+import { Monitor, Menu, FileUp, FileDown, LogOut, User as UserIcon } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -14,6 +14,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "./theme-toggle";
+import { useAuth } from "@/firebase/auth/auth-provider";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 interface HeaderProps {
     onImport: () => void;
@@ -21,6 +24,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onImport, onExport }: HeaderProps) {
+  const { user, signOut } = useAuth();
+
   return (
     <header className="sticky top-0 z-30 flex h-auto items-center gap-4 border-b bg-card px-4 py-3 md:px-6">
       {/* Mobile Menu */}
@@ -83,6 +88,36 @@ export default function Header({ onImport, onExport }: HeaderProps) {
           </Link>
         </Button>
         <ThemeToggle />
+
+        {user && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || undefined} />
+                  <AvatarFallback>
+                    <UserIcon className="h-5 w-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </header>
   );

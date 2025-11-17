@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/firebase/auth/auth-provider';
 
 export const metadata: Metadata = {
   title: 'Truck Departure Dashboard',
@@ -31,12 +32,14 @@ export default function RootLayout({
             disableTransitionOnChange
         >
             <FirebaseClientProvider>
+              <AuthProvider>
                 <div className="flex min-h-screen w-full flex-col">
                   <main className="flex flex-1 flex-col">
                     {children}
                   </main>
                 </div>
                 <Toaster />
+              </AuthProvider>
             </FirebaseClientProvider>
         </ThemeProvider>
       </body>

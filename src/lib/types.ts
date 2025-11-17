@@ -2,7 +2,7 @@ export const STATUSES = ['Waiting', 'Loading', 'Departed', 'Cancelled', 'Delayed
 export type Status = typeof STATUSES[number];
 
 export const CARRIERS = ['Royal Mail', 'EVRI', 'Yodel', 'McBurney', 'Montgomery'] as const;
-export type Carrier = typeof CARRIERS[number];
+export type Carrier = typeof CARRIers[number];
 
 export interface Departure {
   id: string;
@@ -16,4 +16,11 @@ export interface Departure {
   driverName?: string;
   scheduleNumber: string;
   status: Status;
+}
+
+export interface AdminUser {
+    uid: string;
+    email: string;
+    displayName?: string;
+    photoURL?: string;
 }

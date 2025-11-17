@@ -4,11 +4,13 @@ import { FirebaseProvider, initializeFirebase } from '.';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { firebaseConfig } from '@/firebase/config-local'; 
+import { firebaseConfig } from '@/firebase/config-local';
+import { Auth } from 'firebase/auth';
 
 type FirebaseContextState = {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
+  auth: Auth;
 } | null;
 
 export function FirebaseClientProvider({
