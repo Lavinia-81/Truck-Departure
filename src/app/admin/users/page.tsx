@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/firebase/auth/auth-provider';
 import { useRouter } from 'next/navigation';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
