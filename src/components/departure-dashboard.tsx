@@ -410,7 +410,7 @@ export default function DepartureDashboard() {
                 <CardTitle>Departures</CardTitle>
                 <div className="bg-white p-1.5 rounded-md shadow-sm">
                     <div className="w-[60px] h-auto md:w-[100px]">
-                        <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={120} height={47} className="h-auto w-full" />
+                        <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={120} height={47} className="h-auto w-full" priority />
                     </div>
                 </div>
               </div>

@@ -37,7 +37,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8 text-center">
           <div className="bg-white p-4 rounded-md shadow-lg inline-block">
               <div className="w-[200px] h-auto">
-                <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={200} height={78} className="h-auto w-full" />
+                <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={200} height={78} className="h-auto w-full" priority />
               </div>
           </div>
 

@@ -172,7 +172,7 @@ export default function DisplayPage() {
       <header className="flex items-center justify-between gap-4 border-b bg-background px-4 py-3 md:px-6 flex-shrink-0">
         <div className="bg-white p-2 rounded-md shadow-sm">
          <div className="w-[120px] h-auto">
-            <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={150} height={58} className="h-auto w-full" />
+            <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={150} height={58} className="h-auto w-full" priority />
           </div>
         </div>
         <div className="flex flex-col items-center">
