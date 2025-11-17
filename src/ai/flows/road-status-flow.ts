@@ -26,7 +26,7 @@ export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusO
   return roadStatusFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const roadStatusPrompt = ai.definePrompt({
   name: 'roadStatusPrompt',
   input: { schema: RoadStatusInputSchema },
   output: { schema: RoadStatusOutputSchema },
@@ -52,8 +52,8 @@ const roadStatusFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-preview-0514'),
-      prompt: prompt.render({ input: input }).prompt,
+      model: googleAI.model('gemini-1.5-flash-preview'),
+      prompt: roadStatusPrompt.render({input}).prompt,
       output: {
         schema: RoadStatusOutputSchema,
       },
