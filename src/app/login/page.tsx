@@ -12,15 +12,15 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Așteaptă finalizarea încărcării și verifică dacă utilizatorul este logat.
-    // Dacă da, redirecționează către pagina principală.
+    // If loading is finished and we have a user, redirect to home.
     if (!loading && user) {
       router.push('/');
     }
   }, [user, loading, router]);
   
-  // Afișează un ecran de încărcare PÂNĂ CÂND starea de autentificare este complet determinată.
-  // Acest lucru previne bucla de redirecționare.
+  // While authentication is in progress, show a loading screen.
+  // This prevents the redirect loop by not rendering the login button
+  // until we are certain there is no authenticated user.
   if (loading) {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -30,7 +30,7 @@ export default function LoginPage() {
     )
   }
 
-  // Dacă încărcarea s-a terminat și NU există utilizator, afișează butonul de login.
+  // If loading is finished and there's no user, show the login page.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8 text-center">
