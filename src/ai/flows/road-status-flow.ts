@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit/zod';
+import { z } from 'zod';
 
 const RoadStatusInputSchema = z.object({
   destination: z.string().describe('The final destination for the truck route.'),
