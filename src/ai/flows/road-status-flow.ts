@@ -9,6 +9,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const RoadStatusInputSchema = z.object({
   destination: z.string().describe('The final destination for the truck route.'),
@@ -50,7 +51,10 @@ const roadStatusFlow = ai.defineFlow(
     outputSchema: RoadStatusOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await prompt({
+      input,
+      model: googleAI.model('gemini-1.5-flash-preview-0514'),
+    });
     return output!;
   }
 );
