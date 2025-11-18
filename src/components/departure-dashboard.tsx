@@ -168,8 +168,18 @@ export default function DepartureDashboard() {
     if (!firestore) return;
 
     const isNew = !savedDeparture.id;
-    
+
     if (isNew) {
+        // Check for duplicates based on scheduleNumber
+        if (departures?.some(d => d.scheduleNumber === savedDeparture.scheduleNumber)) {
+            toast({
+                variant: "destructive",
+                title: "Duplicate Entry",
+                description: `A departure with schedule number "${savedDeparture.scheduleNumber}" already exists.`,
+            });
+            return;
+        }
+
         const collectionRef = collection(firestore, 'dispatchSchedules');
         addDoc(collectionRef, savedDeparture)
             .then(() => {
@@ -271,8 +281,18 @@ export default function DepartureDashboard() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+        
+        const existingScheduleNumbers = new Set(departures?.map(d => d.scheduleNumber) || []);
 
         const newDepartures: Omit<Departure, 'id'>[] = json.map((row): Omit<Departure, 'id'> | null => {
+          const scheduleNumber = String(row['Schedule No.'] || '').trim();
+
+          // Skip if schedule number already exists
+          if (!scheduleNumber || existingScheduleNumbers.has(scheduleNumber)) {
+             if (scheduleNumber) console.warn(`Skipping duplicate schedule number from import: ${scheduleNumber}`);
+            return null;
+          }
+
           const collectionTimeValue = row['Collection Time'];
           if (!collectionTimeValue) return null;
           
@@ -296,9 +316,8 @@ export default function DepartureDashboard() {
           const carrier = getTrimmedString(row['Carrier']);
           const destination = getTrimmedString(row['Destination']);
           const trailerNumber = getTrimmedString(row['Trailer']);
-          const scheduleNumber = getTrimmedString(row['Schedule No.']);
 
-          if (!carrier || !destination || !trailerNumber || !scheduleNumber) {
+          if (!carrier || !destination || !trailerNumber) {
             console.warn('Skipping row due to missing required fields:', row);
             return null;
           }
@@ -323,21 +342,20 @@ export default function DepartureDashboard() {
             newDepartures.forEach(dep => {
               const docRef = doc(collectionRef); // Automatically generate new ID
               batch.set(docRef, dep);
+              existingScheduleNumbers.add(dep.scheduleNumber); // Add to set to prevent duplicates within the same file
             });
             
             batch.commit()
               .then(() => {
                 toast({
                     title: "Import Successful",
-                    description: `${newDepartures.length} departures have been added to Firestore.`,
+                    description: `${newDepartures.length} departures have been added.`,
                 });
               })
               .catch(async (serverError) => {
-                  // This is a simplified error for batches. A real implementation might
-                  // need to be more specific if it could identify which doc failed.
                   const permissionError = new FirestorePermissionError({
                       path: collectionRef.path,
-                      operation: 'create', // Batch write implies creating docs
+                      operation: 'create',
                       requestResourceData: { note: `Batch import of ${newDepartures.length} documents.` },
                   });
                   errorEmitter.emit('permission-error', permissionError);
@@ -346,8 +364,8 @@ export default function DepartureDashboard() {
         } else {
              toast({
                 variant: "destructive",
-                title: "Import Failed",
-                description: "No valid departures found in the file. Please check the file format and content.",
+                title: "Import Information",
+                description: "No new departures found to import. All entries in the file might already exist.",
             });
         }
       } catch (error) {
@@ -399,7 +417,6 @@ export default function DepartureDashboard() {
                 errorEmitter.emit('permission-error', permissionError);
             });
     } catch (error: any) {
-        // This outer catch is for getDocs, which is a read operation
         const permissionError = new FirestorePermissionError({
             path: 'dispatchSchedules',
             operation: 'list',
