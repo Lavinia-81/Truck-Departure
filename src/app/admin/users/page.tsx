@@ -79,7 +79,9 @@ export default function UserManagementPage() {
         return;
     }
     
-    if (admins?.some(admin => admin.id.toLowerCase() === newAdminEmail.toLowerCase())) {
+    const normalizedEmail = newAdminEmail.toLowerCase();
+
+    if (admins?.some(admin => admin.id.toLowerCase() === normalizedEmail)) {
          toast({
             variant: "destructive",
             title: "Administrator Exists",
@@ -91,7 +93,7 @@ export default function UserManagementPage() {
 
     setIsSubmitting(true);
     try {
-      const adminDocRef = doc(firestore, 'admins', newAdminEmail.toLowerCase());
+      const adminDocRef = doc(firestore, 'admins', normalizedEmail);
       // We don't need to store any data in the doc, the email ID is enough
       await setDoc(adminDocRef, {}); 
       toast({
@@ -114,7 +116,9 @@ export default function UserManagementPage() {
   const handleDeleteAdmin = async (adminId: string) => {
     if (!firestore) return;
 
-    if (user?.email?.toLowerCase() === adminId.toLowerCase()) {
+    const normalizedAdminId = adminId.toLowerCase();
+
+    if (user?.email?.toLowerCase() === normalizedAdminId) {
         toast({
             variant: "destructive",
             title: "Action Not Allowed",
@@ -124,7 +128,7 @@ export default function UserManagementPage() {
     }
 
     try {
-      await deleteDoc(doc(firestore, 'admins', adminId));
+      await deleteDoc(doc(firestore, 'admins', normalizedAdminId));
       toast({
         title: 'Administrator Removed',
         description: `${adminId} no longer has admin privileges.`,

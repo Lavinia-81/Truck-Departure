@@ -31,12 +31,14 @@ export function FirebaseClientProvider({
 
   const checkAdminStatus = useCallback(async (user: User | null, firestore: Firestore) => {
     if (!user?.email) return false;
+    const normalizedEmail = user.email.toLowerCase();
     try {
-      const adminEmailRef = doc(firestore, 'admins', user.email.toLowerCase());
+      const adminEmailRef = doc(firestore, 'admins', normalizedEmail);
       const adminEmailSnap = await getDoc(adminEmailRef);
       return adminEmailSnap.exists();
     } catch (error) {
       console.error("Error checking admin status:", error);
+      // In case of error (e.g. security rules), default to non-admin
       return false;
     }
   }, []);
@@ -51,17 +53,25 @@ export function FirebaseClientProvider({
       
       setLoading(true);
 
+      // This is the core logic for handling redirect-based login
+      // 1. Check for a redirect result first. This is for when the user comes back from Google.
       getRedirectResult(auth).finally(() => {
+        // 2. After checking the redirect, set up the normal auth state listener.
+        // This handles both the redirect result and subsequent auth changes (e.g. manual sign-out).
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
           setUser(firebaseUser);
           if (firebaseUser) {
             const adminStatus = await checkAdminStatus(firebaseUser, firestore);
             setIsAdmin(adminStatus);
           } else {
+            // If there's no user, they are not an admin.
             setIsAdmin(false);
           }
+          // Only stop loading once the user status AND admin status are confirmed.
           setLoading(false);
         });
+        
+        // Cleanup the listener on component unmount.
         return () => unsubscribe();
       });
 
@@ -74,14 +84,17 @@ export function FirebaseClientProvider({
   
   const signIn = async () => {
     if (!context?.auth) return;
-    setLoading(true);
+    setLoading(true); // Start loading when sign-in process begins
     const provider = new GoogleAuthProvider();
+    // Use redirect instead of popup for better mobile experience and to avoid popup blockers.
     await signInWithRedirect(context.auth, provider);
   };
 
   const signOut = async () => {
     if (!context?.auth) return;
+    setLoading(true); // Show loader during sign-out
     await firebaseSignOut(context.auth);
+    // onAuthStateChanged will handle setting user to null and loading to false
   };
 
   if (error) {
@@ -94,19 +107,21 @@ export function FirebaseClientProvider({
       </div>
     );
   }
-
-  if (!context || loading) {
+  
+  // The loading screen is now the single source of truth for the app's initialization state.
+  // It will show until Firebase is initialized, redirect is processed, user is checked, and admin status is verified.
+  if (loading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Initializing...</p>
+        <p className="mt-4 text-muted-foreground">Verifying authentication...</p>
       </div>
     );
   }
 
   return (
     <FirebaseProvider
-      {...context}
+      {...context!}
       user={user}
       isAdmin={isAdmin}
       loading={loading}
