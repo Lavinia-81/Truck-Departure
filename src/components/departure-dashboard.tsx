@@ -26,7 +26,8 @@ import {
 import Header from './header';
 import { Loader2, Package, Truck } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
-import { getRoadStatus, RoadStatusInput, RoadStatusOutput } from '@/ai/flows/road-status.flow';
+import { getRoadStatus } from '@/ai/flows/road-status.flow';
+import type { RoadStatusOutput } from '@/ai/flows/road-status.flow';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useCollection,useFirestore } from '@/firebase';
@@ -71,7 +72,6 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DepartureDashboard() {
   const firestore = useFirestore();
-  // We sort by collectionTime in ascending order directly in the query now
   const departuresQuery = firestore ? query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc')) : null;
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
 
@@ -112,17 +112,12 @@ export default function DepartureDashboard() {
     setIsRouteStatusLoading(true);
     setRouteStatus(null);
 
-    const input: RoadStatusInput = {
-      destination: departure.destination,
-      collectionTime: departure.collectionTime,
-    };
-
-    if (departure.via) {
-      input.via = departure.via;
-    }
-
     try {
-      const result = await getRoadStatus(input);
+      const result = await getRoadStatus({
+        destination: departure.destination,
+        collectionTime: departure.collectionTime,
+        ...(departure.via && { via: departure.via }),
+      });
       setRouteStatus(result);
     } catch (error) {
       console.error("Failed to get road status:", error);
@@ -381,7 +376,6 @@ export default function DepartureDashboard() {
     setIsClearDialogOpen(false);
   };
   
-  // No need to sort here anymore, Firestore query does it for us
   const sortedDepartures = departures || [];
 
   return (
