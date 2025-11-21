@@ -34,7 +34,7 @@ const roadStatusFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-preview'),
+      model: googleAI.model('gemini-1.5-flash'),
       prompt: `You are a logistics AI assistant specializing in UK road traffic.
 
 Your task is to provide a concise, real-time traffic report for a truck journey.
