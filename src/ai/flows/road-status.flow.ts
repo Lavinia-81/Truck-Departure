@@ -1,88 +1,64 @@
 'use server';
-
 /**
  * @fileOverview A route optimization AI agent.
- *
- * - suggestOptimizedRoute - A function that handles the route optimization process.
- * - SuggestOptimizedRouteInput - The input type for the suggestOptimizedRoute function.
- * - SuggestOptimizedRouteOutput - The return type for the suggestOptimizedRoute function.
  */
-import { definePrompt } from "@genkit-ai/ai";
-
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const SuggestOptimizedRouteInputSchema = z.object({
+// Define schemas internally, do not export them.
+const RoadStatusInputSchema = z.object({
   destination: z.string().describe('The final destination of the route.'),
   via: z.string().optional().describe('The first stop on the route, if applicable.'),
-  currentLocation: z.string().describe('The current location of the truck.'),
-  trafficData: z.string().optional().describe('Real-time traffic data, if available.'),
+  collectionTime: z.string().describe("The truck's scheduled collection time in ISO format."),
 });
-export type SuggestOptimizedRouteInput = z.infer<
-  typeof SuggestOptimizedRouteInputSchema
->;
+type RoadStatusInput = z.infer<typeof RoadStatusInputSchema>;
 
-const SuggestOptimizedRouteOutputSchema = z.object({
+const RoadStatusOutputSchema = z.object({
   optimizedRoute: z.string().describe('The suggested optimized route.'),
   estimatedTime: z.string().describe('The estimated time of arrival for the optimized route.'),
-  reasoning: z
-    .string()
-    .describe('The reasoning behind the suggested route optimization.'),
+  reasoning: z.string().describe('The reasoning behind the suggested route optimization.'),
   roadWarnings: z.string().optional().describe('A summary of any warnings, accidents, or significant traffic issues on the suggested route. If there are no issues, this should state "No significant warnings."'),
   warningLevel: z.enum(['none', 'moderate', 'severe']).describe('A classification of the warning severity. "none" for no issues, "moderate" for traffic or minor delays, "severe" for accidents or road closures.'),
 });
-export type SuggestOptimizedRouteOutput = z.infer<
-  typeof SuggestOptimizedRouteOutputSchema
->;
+export type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
 
-export async function suggestOptimizedRoute(
-  input: SuggestOptimizedRouteInput
-): Promise<SuggestOptimizedRouteOutput> {
-  return suggestOptimizedRouteFlow(input);
-}
 
-const retryPrompt = async (
-  input: SuggestOptimizedRouteInput,
-  retries = 3,
-  delay = 1500
-): Promise<SuggestOptimizedRouteOutput> => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      // Call the AI prompt; the SDK may return a string (JSON) or null.
-      const prompt = `Optimize a truck route with the following details:
-- Destination: ${input.destination}
-- Current Location: ${input.currentLocation}
-${input.via ? `- Via: ${input.via}` : ''}
-${input.trafficData ? `- Traffic Data: ${input.trafficData}` : ''}
-Please provide the optimized route, estimated time, reasoning, road warnings, and warning level.`;
-      const response = await ai.prompt(prompt)();
+const roadStatusPrompt = ai.definePrompt({
+  name: 'roadStatusPrompt',
+  input: { schema: RoadStatusInputSchema },
+  output: { schema: RoadStatusOutputSchema },
+  prompt: `As an expert route logistics AI for "The Very Group," your task is to provide a real-time route analysis.
 
-      if (!response) {
-        throw new Error('Empty response from AI');
-      }
+Current Time: ${new Date().toISOString()}
 
-      // Parse the JSON string response
-      return JSON.parse(response.text) as SuggestOptimizedRouteOutput;
-    } catch (error: any) {
-      if (error.message?.includes('503') && i < retries - 1) {
-        await new Promise(res => setTimeout(res, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
+Route Details:
+- Final Destination: {{{destination}}}
+- Via (First Stop): {{{via}}}
+- Scheduled Collection Time: {{{collectionTime}}}
 
-  throw new Error('Failed to get a valid response from AI after retries');
-};
+Analyze the route from the depot (assume Widnes, UK) to the final destination, considering the collection time. Provide an optimized route, a realistic estimated time of arrival (ETA), any road warnings (like traffic, accidents, closures), and a warning level. The ETA should be calculated from the collection time. If 'via' is provided, include it in the route.
 
-const suggestOptimizedRouteFlow = ai.defineFlow(
+Provide your response in JSON format.`,
+});
+
+
+const getRoadStatusFlow = ai.defineFlow(
   {
-    name: 'suggestOptimizedRouteFlow',
-    inputSchema: SuggestOptimizedRouteInputSchema,
-    outputSchema: SuggestOptimizedRouteOutputSchema,
+    name: 'getRoadStatusFlow',
+    inputSchema: RoadStatusInputSchema,
+    outputSchema: RoadStatusOutputSchema,
   },
-  async input => {
-    const output = await retryPrompt(input);
-    return output!;
+  async (input) => {
+    const { output } = await roadStatusPrompt(input);
+    if (!output) {
+      throw new Error("AI failed to generate a response.");
+    }
+    return output;
   }
 );
+
+
+// This is the only exported function.
+export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusOutput> {
+  return getRoadStatusFlow(input);
+}
