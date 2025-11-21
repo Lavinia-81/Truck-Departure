@@ -32,7 +32,6 @@ import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useCollection,useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
-import { ThemeToggle } from './theme-toggle';
 
 
 const statusColors: Record<Status, string> = {
@@ -113,12 +112,18 @@ export default function DepartureDashboard() {
     setIsRouteStatusOpen(true);
     setIsRouteStatusLoading(true);
     setRouteStatus(null);
+
+    const input: { destination: string; collectionTime: string; via?: string } = {
+      destination: departure.destination,
+      collectionTime: departure.collectionTime,
+    };
+
+    if (departure.via) {
+      input.via = departure.via;
+    }
+
     try {
-      const result = await getRoadStatus({
-        destination: departure.destination,
-        via: departure.via,
-        collectionTime: departure.collectionTime,
-      });
+      const result = await getRoadStatus(input);
       setRouteStatus(result);
     } catch (error) {
       console.error("Failed to get road status:", error);
