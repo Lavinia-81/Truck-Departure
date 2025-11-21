@@ -376,7 +376,7 @@ export default function DepartureDashboard() {
     setIsClearDialogOpen(false);
   };
   
-  const sortedDepartures = departures || [];
+  const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
 
   return (
     <TooltipProvider>
