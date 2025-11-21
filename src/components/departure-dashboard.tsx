@@ -26,8 +26,7 @@ import {
 import Header from './header';
 import { Loader2, Package, Truck } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
-import { getRoadStatus } from '@/ai/actions/road-status.action';
-import type { RoadStatusOutput } from '@/ai/flows/road-status.flow';
+import { getRoadStatus, RoadStatusInput, RoadStatusOutput } from '@/ai/flows/road-status.flow';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useCollection,useFirestore } from '@/firebase';
@@ -113,7 +112,7 @@ export default function DepartureDashboard() {
     setIsRouteStatusLoading(true);
     setRouteStatus(null);
 
-    const input: { destination: string; collectionTime: string; via?: string } = {
+    const input: RoadStatusInput = {
       destination: departure.destination,
       collectionTime: departure.collectionTime,
     };
