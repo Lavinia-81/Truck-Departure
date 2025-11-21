@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Monitor, Menu, FileUp, FileDown, LogOut, User as UserIcon, Users } from "lucide-react";
+import { Monitor, Menu, FileUp, FileDown, Users } from "lucide-react";
 import Clock from "./clock";
 import { Button } from "./ui/button";
 import {
@@ -17,6 +17,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { useAuth } from "@/firebase/provider";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { LogOut, User as UserIcon } from "lucide-react";
 
 interface HeaderProps {
     onImport: () => void;

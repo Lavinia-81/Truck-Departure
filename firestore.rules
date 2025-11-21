@@ -8,14 +8,18 @@ service cloud.firestore {
     // Write access is restricted to prevent users from adding themselves as admins.
     match /admins/{adminId} {
       allow read: if request.auth != null;
-      allow write: if false; // Disallow client-side writes for security.
+      // Allow ONLY existing admins to add or remove other admins.
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()));
     }
 
     // Allow admins to read, write, update, and delete dispatch schedules.
     // The exists() function checks if the user's email (converted to lower case)
     // exists as a document in the /admins collection.
     match /dispatchSchedules/{dispatchScheduleId} {
-      allow read, write: if request.auth != null && 
+      // Public display can read, any authed user can read
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
         exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()));
     }
   }

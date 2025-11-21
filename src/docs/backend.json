@@ -98,7 +98,7 @@
         "schema": {
             "$ref": "#/entities/AdminUser"
         },
-        "description": "Collection of admin users. The document ID can be the user's UID or email address."
+        "description": "Collection of admin users. The document ID is the user's email address (lowercase)."
     }
   }
 }

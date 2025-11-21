@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Edit, Trash2, TrafficCone, PlusCircle, Ship, Route } from 'lucide-react';
-import { format, parseISO, addMinutes } from 'date-fns';
+import { Edit, Trash2, PlusCircle, Ship, Route, BrainCircuit } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import type { Departure, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
 import { useToast } from '@/components/ui/use-toast';
@@ -30,17 +30,17 @@ import { getRoadStatus } from '@/ai/actions/road-status.action';
 import type { RoadStatusOutput } from '@/ai/flows/road-status.flow';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-
 import { useCollection,useFirestore } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, setDoc, deleteDoc, writeBatch, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
+import { ThemeToggle } from './theme-toggle';
 
 
 const statusColors: Record<Status, string> = {
-  Departed: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
-  Loading: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
-  Waiting: 'bg-blue-900 text-white border-blue-950 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800',
-  Cancelled: 'bg-red-500 text-red-50 border-red-600 dark:bg-red-800/80 dark:text-red-100 dark:border-red-700',
-  Delayed: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
+  Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
+  Loading: 'bg-fuchsia-200 text-fuchsia-800 border-fuchsia-300 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
+  Waiting: 'bg-blue-200 text-blue-800 border-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800',
+  Cancelled: 'bg-red-200 text-red-800 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800',
+  Delayed: 'bg-pink-200 text-pink-800 border-pink-300 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
 };
 
 interface CarrierStyle {
@@ -73,7 +73,8 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DepartureDashboard() {
   const firestore = useFirestore();
-  const departuresQuery = firestore ? collection(firestore, 'dispatchSchedules') : null;
+  // We sort by collectionTime in ascending order directly in the query now
+  const departuresQuery = firestore ? query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc')) : null;
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -81,14 +82,17 @@ export default function DepartureDashboard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingDeparture, setDeletingDeparture] = useState<Departure | null>(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
-  const [isRouteStatusDialogOpen, setIsRouteStatusDialogOpen] = useState(false);
-  const [selectedDepartureForStatus, setSelectedDepartureForStatus] = useState<Departure | null>(null);
+  
+  const [isRouteStatusOpen, setIsRouteStatusOpen] = useState(false);
+  const [routeStatusDeparture, setRouteStatusDeparture] = useState<Departure | null>(null);
   const [routeStatus, setRouteStatus] = useState<RoadStatusOutput | null>(null);
   const [isRouteStatusLoading, setIsRouteStatusLoading] = useState(false);
 
+  
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  
   const handleAddNew = () => {
     setEditingDeparture(null);
     setIsDialogOpen(true);
@@ -103,10 +107,10 @@ export default function DepartureDashboard() {
     setDeletingDeparture(departure);
     setIsDeleteDialogOpen(true);
   };
-    
-  const handleShowRouteStatus = async (departure: Departure) => {
-    setSelectedDepartureForStatus(departure);
-    setIsRouteStatusDialogOpen(true);
+  
+   const handleCheckRoadStatus = async (departure: Departure) => {
+    setRouteStatusDeparture(departure);
+    setIsRouteStatusOpen(true);
     setIsRouteStatusLoading(true);
     setRouteStatus(null);
     try {
@@ -116,95 +120,99 @@ export default function DepartureDashboard() {
         collectionTime: departure.collectionTime,
       });
       setRouteStatus(result);
-    } catch (e: any) {
-      console.error(e);
-      let description = "Could not retrieve traffic warnings. Please try again.";
-       if (e.message?.includes('API key not valid')) {
-        description = "The API key for the AI service is not valid. Please check your .env.local file and restart the server.";
-      } else if (e.message?.includes('429') || e.message?.includes('503')) {
-        description = "The AI service is currently busy or you have reached the request limit. Please wait one minute before trying again.";
-      } else {
-        description = e.message || "An unknown error occurred while fetching the route status.";
-      }
-      
-      toast({
+    } catch (error) {
+      console.error("Failed to get road status:", error);
+      setRouteStatus(null); // Ensure status is cleared on error
+       toast({
         variant: "destructive",
-        title: "Error Fetching Route Status",
-        description,
-        });
-      setIsRouteStatusDialogOpen(false); 
+        title: "AI Analysis Failed",
+        description: `Could not retrieve road status. ${(error as Error).message}`,
+      });
     } finally {
       setIsRouteStatusLoading(false);
     }
   };
 
   const confirmDelete = async () => {
-    if (!deletingDeparture || !firestore) return;
+    if (!deletingDeparture || !deletingDeparture.id || !firestore) {
+        toast({
+            variant: "destructive",
+            title: "Deletion Failed",
+            description: "Invalid departure selected for deletion.",
+        });
+        setIsDeleteDialogOpen(false);
+        setDeletingDeparture(null);
+        return;
+    }
+
     try {
-      await deleteDoc(doc(firestore, "dispatchSchedules", deletingDeparture.id));
-      toast({
-        title: "Departure Deleted",
-        description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
-      });
+        const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
+        await deleteDoc(docRef);
+        toast({
+            title: "Departure Deleted",
+            description: `The departure for ${deletingDeparture.carrier} has been deleted.`,
+        });
     } catch (error) {
-      console.error("Error deleting departure:", error);
-      toast({
-        variant: "destructive",
-        title: "Delete Failed",
-        description: String(error),
-      });
+        console.error("Error deleting departure: ", error);
+        toast({
+            variant: "destructive",
+            title: "Deletion Failed",
+            description: "Could not delete the departure from the database.",
+        });
     } finally {
-      setIsDeleteDialogOpen(false);
-      setDeletingDeparture(null);
+        setIsDeleteDialogOpen(false);
+        setDeletingDeparture(null);
+    }
+  };
+  
+  const handleSave = async (savedDeparture: Omit<Departure, 'id'> & { id?: string }) => {
+    if (!firestore) return;
+
+    const isNew = !savedDeparture.id;
+    
+    try {
+      if (isNew) {
+          const collectionRef = collection(firestore, 'dispatchSchedules');
+          await addDoc(collectionRef, savedDeparture);
+          toast({
+              title: "Departure Added",
+              description: `A new departure for ${savedDeparture.carrier} has been added.`
+          });
+      } else {
+          const docRef = doc(firestore, 'dispatchSchedules', String(savedDeparture.id));
+          const originalDeparture = departures?.find(d => d.id === savedDeparture.id);
+          
+          await setDoc(docRef, savedDeparture);
+
+          if (originalDeparture?.status !== 'Departed' && savedDeparture.status === 'Departed') {
+              toast({
+                  title: "Truck Departed",
+                  description: `Trailer ${savedDeparture.trailerNumber} for ${savedDeparture.carrier} has departed.`,
+              });
+          } else if (originalDeparture?.status !== savedDeparture.status) {
+            toast({
+                title: "Status Updated",
+                description: `Departure for ${savedDeparture.carrier} is now ${savedDeparture.status}.`
+            });
+          } else {
+            toast({
+                title: "Departure Updated",
+                description: `The departure for ${savedDeparture.carrier} has been updated.`
+            });
+          }
+      }
+    } catch (error) {
+       console.error("Error saving departure:", error);
+       toast({
+         variant: "destructive",
+         title: "Save Failed",
+         description: "Could not save the departure to the database.",
+       });
     }
   };
 
-
-  const handleSave = async (savedDeparture: Omit<Departure, 'id'> & { id?: string }) => {
-      if (!firestore) return;
-
-      const { id, ...data } = savedDeparture;
-      const isNew = !id;
-
-      try {
-        if (isNew) {
-          // Check for duplicates before adding
-          const q = query(collection(firestore, "dispatchSchedules"), where("scheduleNumber", "==", data.scheduleNumber));
-          const existing = await getDocs(q);
-          if (!existing.empty) {
-            toast({
-              variant: "destructive",
-              title: "Duplicate Schedule Number",
-              description: `A departure with schedule number ${data.scheduleNumber} already exists.`,
-            });
-            return;
-          }
-
-          await addDoc(collection(firestore, "dispatchSchedules"), data);
-          toast({
-            title: "Departure Added",
-            description: `A new departure for ${savedDeparture.carrier} has been added.`,
-          });
-
-        } else { // This is an update
-          await updateDoc(doc(firestore, "dispatchSchedules", id), data);
-           toast({
-              title: "Departure Updated",
-              description: `The departure for ${savedDeparture.carrier} has been updated.`,
-            });
-        }
-      } catch (error) {
-        console.error("Error saving departure:", error);
-        toast({
-          variant: "destructive",
-          title: "Save Failed",
-          description: "Could not save the departure. " + String(error),
-        });
-      }
-  };
-
   const handleExport = () => {
-    if (!departures || departures.length === 0) {
+    if (!departures) {
       toast({
         variant: "destructive",
         title: "Export Failed",
@@ -214,14 +222,14 @@ export default function DepartureDashboard() {
     }
     const dataToExport = departures.map(d => ({
       'Carrier': d.carrier,
-      'Via': d.via || '',
+      'Via': d.via || 'N/A',
       'Destination': d.destination,
-      'Trailer': d.trailerNumber,
+      'Trailer': d.trailerNumber || 'N/A',
       'Collection Time': format(parseISO(d.collectionTime), 'yyyy-MM-dd HH:mm'),
-      'Bay': d.bayDoor || '',
-      'Seal No.': d.sealNumber || '',
-      'Driver': d.driverName || '',
-      'Schedule No.': d.scheduleNumber || '',
+      'Bay': d.bayDoor || 'N/A',
+      'Seal No.': d.sealNumber || 'N/A',
+      'Driver': d.driverName || 'N/A',
+      'Schedule No.': d.scheduleNumber || 'N/A',
       'Status': d.status,
     }));
     
@@ -230,7 +238,7 @@ export default function DepartureDashboard() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Departures');
     
     worksheet['!cols'] = [
-        { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 },
+        { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
         { wch: 20 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
     ];
     
@@ -242,146 +250,135 @@ export default function DepartureDashboard() {
   };
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file || !firestore) return;
+    if (!firestore) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-          if (json.length === 0) {
-            toast({ variant: "destructive", title: "Empty File", description: "The imported file is empty or in an invalid format." });
-            return;
-          }
-
-          const batch = writeBatch(firestore);
-          const existingScheduleNumbers = new Set(departures?.map(d => d.scheduleNumber));
-          let importedCount = 0;
-          let skippedCount = 0;
-
-          for (const row of json) {
-            const scheduleNumber = row['Schedule No.'] ? String(row['Schedule No.']).trim() : '';
-            
-            if (!scheduleNumber || existingScheduleNumbers.has(scheduleNumber)) {
-                skippedCount++;
-                continue;
-            }
-
-            const collectionTimeValue = row['Collection Time'];
-            if (!collectionTimeValue) {
-                skippedCount++;
-                continue;
-            }
-
-            let collectionTime;
-            if (typeof collectionTimeValue === 'number') {
-                const parsedDate = XLSX.SSF.parse_date_code(collectionTimeValue);
-                collectionTime = new Date(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S);
-            } else {
-                collectionTime = new Date(collectionTimeValue);
-            }
-            if (isNaN(collectionTime.getTime())) {
-                skippedCount++;
-                continue;
-            }
-
-            const carrier = String(row['Carrier'] || '').trim();
-            const destination = String(row['Destination'] || '').trim();
-            const trailerNumber = String(row['Trailer'] || '').trim();
-
-            if (!carrier || !destination || !trailerNumber) {
-                skippedCount++;
-                continue;
-            }
-
-            const newDepartureData = {
-              carrier,
-              destination,
-              trailerNumber,
-              scheduleNumber,
-              collectionTime: collectionTime.toISOString(),
-              via: String(row['Via'] || '').trim(),
-              bayDoor: row['Bay'] ? Number(row['Bay']) : null,
-              sealNumber: String(row['Seal No.'] || '').trim(),
-              driverName: String(row['Driver'] || '').trim(),
-              status: (String(row['Status'] || 'Waiting').trim() as Status),
-            };
-
-            const docRef = doc(collection(firestore, "dispatchSchedules"));
-            batch.set(docRef, newDepartureData);
-            importedCount++;
-            existingScheduleNumbers.add(scheduleNumber); // Prevent duplicates within the same file
+        const newDepartures: Omit<Departure, 'id'>[] = json.map((row): Omit<Departure, 'id'> | null => {
+          const collectionTimeValue = row['Collection Time'];
+          if (!collectionTimeValue) return null;
+          
+          let collectionTime;
+          if (typeof collectionTimeValue === 'number') {
+            const parsedDate = XLSX.SSF.parse_date_code(collectionTimeValue);
+            collectionTime = new Date(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S);
+          } else {
+             collectionTime = new Date(collectionTimeValue);
           }
           
-          if (importedCount > 0) {
-            await batch.commit();
-            toast({
-                title: "Import Complete",
-                description: `${importedCount} departures added. ${skippedCount} duplicates or invalid rows were skipped.`,
-            });
-          } else {
-             toast({
-                variant: "destructive",
-                title: "No New Data Imported",
-                description: `All ${skippedCount} rows were duplicates or contained invalid data.`,
-            });
+          if (isNaN(collectionTime.getTime())) return null;
+          
+          const getTrimmedString = (value: any): string => {
+            if (value === null || typeof value === 'undefined') {
+              return '';
+            }
+            return String(value).trim();
+          };
+          
+          const carrier = getTrimmedString(row['Carrier']);
+          const destination = getTrimmedString(row['Destination']);
+          const trailerNumber = getTrimmedString(row['Trailer']);
+          const scheduleNumber = getTrimmedString(row['Schedule No.']);
+
+          if (!carrier || !destination || !trailerNumber || !scheduleNumber) {
+            console.warn('Skipping row due to missing required fields:', row);
+            return null;
           }
 
+          return {
+            carrier: carrier as Departure['carrier'],
+            destination: destination,
+            via: (row['Via'] === 'N/A' || !row['Via']) ? '' : getTrimmedString(row['Via']),
+            trailerNumber: trailerNumber,
+            collectionTime: collectionTime.toISOString(),
+            bayDoor: (row['Bay'] && row['Bay'] !== 'N/A') ? Number(row['Bay']) : null,
+            sealNumber: (row['Seal No.'] === 'N/A' || !row['Seal No.']) ? '' : getTrimmedString(row['Seal No.']),
+            driverName: (row['Driver'] === 'NA' || !row['Driver']) ? '' : getTrimmedString(row['Driver']),
+            scheduleNumber: scheduleNumber,
+            status: (getTrimmedString(row['Status']) as Status) || 'Waiting',
+          };
+        }).filter((d): d is Omit<Departure, 'id'> => d !== null);
+
+        if (newDepartures.length > 0) {
+            const batch = writeBatch(firestore);
+            const collectionRef = collection(firestore, 'dispatchSchedules');
+            newDepartures.forEach(dep => {
+              const docRef = doc(collectionRef); // Automatically generate new ID
+              batch.set(docRef, dep);
+            });
+            await batch.commit();
+
+            toast({
+                title: "Import Successful",
+                description: `${newDepartures.length} departures have been added to Firestore.`,
+            });
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Import Failed",
+                description: "No valid departures found in the file. Please check the file format and content.",
+            });
+        }
       } catch (error) {
         console.error("Error importing file:", error);
         toast({
             variant: "destructive",
             title: "Import Error",
-            description: "There was an error processing your file. Please ensure it's a valid Excel file.",
+            description: "There was an error processing your file. Please ensure it is a valid Excel file.",
         });
-      } finally {
-        if(event.target) event.target.value = '';
       }
     };
     reader.readAsBinaryString(file);
+    
+    if(event.target) event.target.value = '';
   };
   
   const handleClearAll = async () => {
     if (!firestore) return;
     if (!departures || departures.length === 0) {
-      toast({
-        title: "Already Empty",
-        description: "There is no data to clear."
-      });
-      setIsClearDialogOpen(false);
-      return;
+        toast({
+            title: "Already Empty",
+            description: "There is no data to clear."
+        });
+        setIsClearDialogOpen(false);
+        return;
     }
-
+    
     try {
-      const batch = writeBatch(firestore);
-      const snapshot = await getDocs(collection(firestore, "dispatchSchedules"));
-      snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref);
-      });
-      await batch.commit();
-
-      toast({
-        title: "Clearance Complete",
-        description: "All departure data has been deleted."
-      });
+        const collectionRef = collection(firestore, 'dispatchSchedules');
+        const querySnapshot = await getDocs(collectionRef);
+        const batch = writeBatch(firestore);
+        querySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+        toast({
+            title: "Clearance Complete",
+            description: "All departure data has been deleted from Firestore."
+        });
     } catch (error) {
-      console.error("Error clearing departures:", error);
-      toast({
-        variant: "destructive",
-        title: "Clear Failed",
-        description: String(error)
-      });
-    } finally {
-      setIsClearDialogOpen(false);
+        console.error("Error clearing all data:", error);
+        toast({
+            variant: "destructive",
+            title: "Clearance Failed",
+            description: "Could not delete all departure data. Please try again."
+        });
     }
+    
+    setIsClearDialogOpen(false);
   };
-
-  const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
+  
+  // No need to sort here anymore, Firestore query does it for us
+  const sortedDepartures = departures || [];
 
   return (
     <TooltipProvider>
@@ -389,10 +386,9 @@ export default function DepartureDashboard() {
         <Header 
           onImport={handleImportClick}
           onExport={handleExport}
-          onAddNew={handleAddNew}
         />
         <main className="flex-1 flex flex-col space-y-4 p-4 md:p-8 pt-6 overflow-hidden">
-          <Card className="flex-1 flex flex-col overflow-hidden">
+          <Card className="flex-1 flex flex-col overflow-hidden bg-card">
             <CardHeader className="flex flex-row items-center justify-between gap-2 md:gap-4">
                <div className="flex items-center gap-4">
                 <CardTitle>Departures</CardTitle>
@@ -402,18 +398,18 @@ export default function DepartureDashboard() {
                     </div>
                 </div>
               </div>
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-4">
                   <Button onClick={handleAddNew}>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Add Departure
                   </Button>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col overflow-hidden">
+            <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
               <input type="file" ref={fileInputRef} onChange={handleFileImport} accept=".xlsx, .xls" className="hidden" />
               <div className="relative w-full overflow-auto">
                 <Table>
-                  <TableHeader className="bg-primary/90">
+                  <TableHeader className="bg-primary/90 sticky top-0 z-10">
                     <TableRow className="border-primary/90 hover:bg-primary/90">
                       <TableHead className="text-primary-foreground">Carrier</TableHead>
                       <TableHead className="text-primary-foreground">Via</TableHead>
@@ -425,7 +421,7 @@ export default function DepartureDashboard() {
                       <TableHead className="text-primary-foreground">Driver</TableHead>
                       <TableHead className="text-primary-foreground">Schedule No.</TableHead>
                       <TableHead className="text-primary-foreground">Status</TableHead>
-                      <TableHead className="text-right text-primary-foreground">Actions</TableHead>
+                      <TableHead className="text-center text-primary-foreground">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -434,7 +430,7 @@ export default function DepartureDashboard() {
                         <TableCell colSpan={11} className="text-center h-24">
                             <div className="flex justify-center items-center">
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                <span>Loading departures...</span>
+                                <span>Loading departures from Firestore...</span>
                             </div>
                         </TableCell>
                       </TableRow>
@@ -463,40 +459,36 @@ export default function DepartureDashboard() {
                             <TableCell>{d.driverName || 'N/A'}</TableCell>
                             <TableCell>{d.scheduleNumber}</TableCell>
                             <TableCell><Badge variant="outline" className="border-current">{d.status}</Badge></TableCell>
-                            <TableCell className="text-right">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => handleShowRouteStatus(d)} disabled={d.status === 'Departed'}>
-                                    <TrafficCone className="h-4 w-4 text-orange-400" />
-                                    <span className="sr-only">Route Status</span>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Check Route Status</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
-                                    <Edit className="h-4 w-4" />
-                                    <span className="sr-only">Edit</span>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edit Departure</p>
-                                </TooltipContent>
-                              </Tooltip>
-                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete Departure</p>
-                                </TooltipContent>
-                              </Tooltip>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => handleCheckRoadStatus(d)}>
+                                      <BrainCircuit className="h-4 w-4" />
+                                      <span className="sr-only">Check Road Status</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Check Road Status (AI)</p></TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(d)}>
+                                      <Edit className="h-4 w-4" />
+                                      <span className="sr-only">Edit</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Edit Departure</p></TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(d)}>
+                                      <Trash2 className="h-4 w-4" />
+                                      <span className="sr-only">Delete</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Delete Departure</p></TooltipContent>
+                                </Tooltip>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -514,7 +506,7 @@ export default function DepartureDashboard() {
             </CardContent>
           </Card>
         </main>
-        <footer className="sticky bottom-0 border-t bg-background px-4 py-3 md:px-6 flex-shrink-0">
+        <footer className="sticky bottom-0 border-t bg-card px-4 py-3 md:px-6 flex-shrink-0">
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
               <span className="font-semibold text-base mr-2">Legend:</span>
               {STATUSES.map((status) => (
@@ -523,7 +515,7 @@ export default function DepartureDashboard() {
                   <span>{status}</span>
                 </div>
               ))}
-              <div className="ml-auto mt-2 md:mt-0">
+              <div className="ml-auto flex items-center gap-4 mt-2 md:mt-0">
                 <Button size="sm" variant="destructive" onClick={() => setIsClearDialogOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Clear All
@@ -538,11 +530,11 @@ export default function DepartureDashboard() {
           onSave={handleSave}
         />
         <RouteStatusDialog
-          isOpen={isRouteStatusDialogOpen}
-          onOpenChange={setIsRouteStatusDialogOpen}
-          departure={selectedDepartureForStatus}
-          routeStatus={routeStatus}
-          isLoading={isRouteStatusLoading}
+            isOpen={isRouteStatusOpen}
+            onOpenChange={setIsRouteStatusOpen}
+            departure={routeStatusDeparture}
+            routeStatus={routeStatus}
+            isLoading={isRouteStatusLoading}
         />
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
@@ -564,12 +556,12 @@ export default function DepartureDashboard() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all departure data from the Firebase database.
+                This action cannot be undone. This will permanently delete all departure data from the database.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">Yes, delete everything</AlertDialogAction>
+              <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">Clear All</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
