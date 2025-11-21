@@ -11,12 +11,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
 
-export const RoadStatusInputSchema = z.object({
+const RoadStatusInputSchema = z.object({
   destination: z.string().describe('The final destination for the truck route.'),
 });
-export type RoadStatusInput = z.infer<typeof RoadStatusInputSchema>;
+type RoadStatusInput = z.infer<typeof RoadStatusInputSchema>;
 
-export const RoadStatusOutputSchema = z.object({
+const RoadStatusOutputSchema = z.object({
   status: z
     .string()
     .describe(
@@ -28,7 +28,7 @@ export const RoadStatusOutputSchema = z.object({
       'The estimated time of arrival (ETA) for the route, considering current conditions.'
     ),
 });
-export type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
+type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
 
 
 const roadStatusPrompt = ai.definePrompt(
