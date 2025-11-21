@@ -1,6 +1,15 @@
-import {genkit, type Genkit} from 'genkit';
+import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
-export const ai: Genkit = genkit({
-  plugins: [googleAI()],
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+if (!apiKey) {
+  console.warn(
+    'GEMINI_API_KEY is not set. AI features will not be available.'
+  );
+}
+
+const googleAiPlugin = googleAI(apiKey ? {apiKey} : undefined);
+
+export const ai = genkit({
+  plugins: [googleAiPlugin],
 });
