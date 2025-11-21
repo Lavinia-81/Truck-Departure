@@ -59,6 +59,10 @@ const roadStatusFlow = ai.defineFlow(
       },
     });
 
-    return output!;
+    if (!output) {
+      throw new Error("AI response is empty.");
+    }
+    
+    return output;
   }
 );
