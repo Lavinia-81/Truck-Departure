@@ -4,8 +4,6 @@
  * @fileOverview An AI agent to get road status and warnings for a given destination.
  *
  * - getRoadStatus - A function that gets the road status.
- * - RoadStatusInput - The input type for the getRoadStatus function.
- * - RoadStatusOutput - The return type for the getRoadStatus function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -30,18 +28,6 @@ const RoadStatusOutputSchema = z.object({
 });
 type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
 
-
-const roadStatusPrompt = ai.definePrompt(
-  {
-    name: 'roadStatusPrompt',
-    input: { schema: RoadStatusInputSchema },
-    output: { schema: RoadStatusOutputSchema },
-    prompt: `You are a traffic analysis AI. Provide a brief summary of road conditions and an estimated time of arrival for a truck route to the following destination: {{{destination}}}.
-
-Consider real-time traffic data, potential delays, and road closures. If there are no major issues, state "No significant warnings."`,
-  }
-);
-
 const getRoadStatusFlow = ai.defineFlow(
   {
     name: 'getRoadStatusFlow',
@@ -49,7 +35,15 @@ const getRoadStatusFlow = ai.defineFlow(
     outputSchema: RoadStatusOutputSchema,
   },
   async (input) => {
-    const { output } = await roadStatusPrompt(input);
+    const { output } = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
+        prompt: `You are a traffic analysis AI. Provide a brief summary of road conditions and an estimated time of arrival for a truck route to the following destination: ${input.destination}.
+
+Consider real-time traffic data, potential delays, and road closures. If there are no major issues, state "No significant warnings."`,
+        output: {
+            schema: RoadStatusOutputSchema,
+        }
+    });
     return output!;
   }
 );
