@@ -17,9 +17,7 @@ export const ai = genkit({
   plugins: [
     googleAI({
       apiKey: apiKey,
-      defaultModel: 'gemini-1.5-flash'
     }),
   ],
-  logLevel: 'debug',
   enableTracingAndMetrics: true,
 });

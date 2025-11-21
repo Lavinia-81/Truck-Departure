@@ -35,13 +35,22 @@ export type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
  * @returns A promise that resolves to the route analysis, conforming to RoadStatusOutput schema.
  */
 export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusOutput> {
-  // Define the AI prompt with structured input and output.
-  // This prompt instructs the AI on its role, the data it will receive, and the format of its response.
-  const roadStatusPrompt = ai.definePrompt({
-    name: 'roadStatusPrompt',
-    input: { schema: RoadStatusInputSchema.extend({ currentTime: z.string() }) },
-    output: { schema: RoadStatusOutputSchema },
-    prompt: `As an expert route logistics AI for "The Very Group," your task is to provide a real-time route analysis.
+  // Define the Genkit flow. A flow orchestrates the AI call.
+  const roadStatusFlow = ai.defineFlow(
+    {
+      name: 'roadStatusFlow',
+      inputSchema: RoadStatusInputSchema,
+      outputSchema: RoadStatusOutputSchema,
+    },
+    async (flowInput) => {
+        // Define the AI prompt with structured input and output.
+        // This prompt instructs the AI on its role, the data it will receive, and the format of its response.
+        const roadStatusPrompt = ai.definePrompt({
+            name: 'roadStatusPrompt',
+            input: { schema: RoadStatusInputSchema.extend({ currentTime: z.string(), via_or_na: z.string() }) },
+            output: { schema: RoadStatusOutputSchema },
+            model: 'gemini-1.5-flash',
+            prompt: `As an expert route logistics AI for "The Very Group," your task is to provide a real-time route analysis.
 
 Current Time: {{{currentTime}}}
 
@@ -53,16 +62,8 @@ Route Details:
 Analyze the route from the depot (assume Widnes, UK) to the final destination, considering the collection time. If a 'Via' location is provided and is not 'N/A', include it as the first stop. Provide an optimized route, a realistic estimated time of arrival (ETA), any road warnings (like traffic, accidents, closures), and a warning level. The ETA should be calculated from the collection time.
 
 Provide your response in JSON format.`,
-  });
+        });
 
-  // Define the Genkit flow. A flow orchestrates the AI call.
-  const roadStatusFlow = ai.defineFlow(
-    {
-      name: 'roadStatusFlow',
-      inputSchema: RoadStatusInputSchema,
-      outputSchema: RoadStatusOutputSchema,
-    },
-    async (flowInput) => {
       // Execute the prompt with the current time and the input from the client.
       const { output } = await roadStatusPrompt({
         ...flowInput,
