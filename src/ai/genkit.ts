@@ -1,19 +1,19 @@
-'use server';
-
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
+import {config} from 'dotenv';
 
-const apiKey = process.env.GEMINI_API_KEY;
+config();
 
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 if (!apiKey) {
   console.warn(
-    'Variabila de mediu GEMINI_API_KEY nu este setată. Funcționalitățile AI nu vor fi disponibile.'
+    'GEMINI_API_KEY is not set. AI features will not be available.'
   );
 }
 
-// Inițializează plugin-ul Google AI doar dacă cheia API există.
-const googleAiPlugin = apiKey ? googleAI({apiKey}) : googleAI();
+const googleAiPlugin = googleAI(apiKey ? {apiKey} : undefined);
 
 export const ai = genkit({
   plugins: [googleAiPlugin],
+  model: googleAI.model('gemini-2.5-flash', apiKey ? {apiKey} : undefined),
 });
