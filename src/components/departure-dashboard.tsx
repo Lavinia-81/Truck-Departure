@@ -375,8 +375,6 @@ export default function DepartureDashboard() {
     
     setIsClearDialogOpen(false);
   };
-  
-  const sortedDepartures = departures ? [...departures].sort((a, b) => new Date(a.collectionTime).getTime() - new Date(b.collectionTime).getTime()) : [];
 
   return (
     <TooltipProvider>
@@ -432,8 +430,8 @@ export default function DepartureDashboard() {
                             </div>
                         </TableCell>
                       </TableRow>
-                    ) : sortedDepartures.length > 0 ? (
-                      sortedDepartures.map(d => {
+                    ) : departures && departures.length > 0 ? (
+                      departures.map(d => {
                         const carrierStyle = carrierStyles[d.carrier] || {};
                         return (
                           <TableRow key={d.id} className={cn('transition-colors', statusColors[d.status])}>
