@@ -47,10 +47,10 @@ Current Time: {{{currentTime}}}
 
 Route Details:
 - Final Destination: {{{destination}}}
-{{#if via}}- Via (First Stop): {{{via}}}{{/if}}
+- Via (First Stop): {{{via_or_na}}}
 - Scheduled Collection Time: {{{collectionTime}}}
 
-Analyze the route from the depot (assume Widnes, UK) to the final destination, considering the collection time. Provide an optimized route, a realistic estimated time of arrival (ETA), any road warnings (like traffic, accidents, closures), and a warning level. The ETA should be calculated from the collection time. If 'via' is provided, include it in the route.
+Analyze the route from the depot (assume Widnes, UK) to the final destination, considering the collection time. If a 'Via' location is provided and is not 'N/A', include it as the first stop. Provide an optimized route, a realistic estimated time of arrival (ETA), any road warnings (like traffic, accidents, closures), and a warning level. The ETA should be calculated from the collection time.
 
 Provide your response in JSON format.`,
   });
@@ -67,6 +67,7 @@ Provide your response in JSON format.`,
       const { output } = await roadStatusPrompt({
         ...flowInput,
         currentTime: new Date().toISOString(),
+        via_or_na: flowInput.via || 'N/A',
       });
       
       if (!output) {
