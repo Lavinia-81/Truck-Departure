@@ -72,7 +72,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DepartureDashboard() {
   const firestore = useFirestore();
-  const departuresQuery = firestore ? query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc')) : null;
+  const departuresQuery = firestore ? query(collection(firestore, 'departures'), orderBy('collectionTime', 'asc')) : null;
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -111,13 +111,14 @@ export default function DepartureDashboard() {
     setIsRouteStatusOpen(true);
     setIsRouteStatusLoading(true);
     setRouteStatus(null);
+    const input = {
+      destination: departure.destination,
+      collectionTime: departure.collectionTime,
+      ...(departure.via ? { via: departure.via } : {}),
+    };
 
     try {
-      const result = await getRoadStatus({
-        destination: departure.destination,
-        collectionTime: departure.collectionTime,
-        ...(departure.via && { via: departure.via }),
-      });
+      const result = await getRoadStatus(input);
       setRouteStatus(result);
     } catch (error) {
       console.error("Failed to get road status:", error);
@@ -145,7 +146,7 @@ export default function DepartureDashboard() {
     }
 
     try {
-        const docRef = doc(firestore, 'dispatchSchedules', deletingDeparture.id);
+        const docRef = doc(firestore, 'departures', deletingDeparture.id);
         await deleteDoc(docRef);
         toast({
             title: "Departure Deleted",
@@ -171,14 +172,14 @@ export default function DepartureDashboard() {
     
     try {
       if (isNew) {
-          const collectionRef = collection(firestore, 'dispatchSchedules');
+          const collectionRef = collection(firestore, 'departures');
           await addDoc(collectionRef, savedDeparture);
           toast({
               title: "Departure Added",
               description: `A new departure for ${savedDeparture.carrier} has been added.`
           });
       } else {
-          const docRef = doc(firestore, 'dispatchSchedules', String(savedDeparture.id));
+          const docRef = doc(firestore, 'departures', String(savedDeparture.id));
           const originalDeparture = departures?.find(d => d.id === savedDeparture.id);
           
           await setDoc(docRef, savedDeparture);
@@ -309,7 +310,7 @@ export default function DepartureDashboard() {
 
         if (newDepartures.length > 0) {
             const batch = writeBatch(firestore);
-            const collectionRef = collection(firestore, 'dispatchSchedules');
+            const collectionRef = collection(firestore, 'departures');
             newDepartures.forEach(dep => {
               const docRef = doc(collectionRef); // Automatically generate new ID
               batch.set(docRef, dep);
@@ -353,7 +354,7 @@ export default function DepartureDashboard() {
     }
     
     try {
-        const collectionRef = collection(firestore, 'dispatchSchedules');
+        const collectionRef = collection(firestore, 'departures');
         const querySnapshot = await getDocs(collectionRef);
         const batch = writeBatch(firestore);
         querySnapshot.forEach(doc => {

@@ -59,7 +59,7 @@ const carrierStyles: Record<string, CarrierStyle> = {
 
 export default function DisplayPage() {
   const firestore = useFirestore();
-  const departuresQuery = firestore ? query(collection(firestore, 'dispatchSchedules'), orderBy('collectionTime', 'asc')) : null;
+  const departuresQuery = firestore ? query(collection(firestore, 'departures'), orderBy('collectionTime', 'asc')) : null;
   const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
 
   const tableContainerRef = useRef<HTMLDivElement>(null);
