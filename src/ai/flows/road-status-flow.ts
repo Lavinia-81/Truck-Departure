@@ -26,24 +26,6 @@ export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusO
   return roadStatusFlow(input);
 }
 
-const roadStatusPrompt = ai.definePrompt({
-  name: 'roadStatusPrompt',
-  input: { schema: RoadStatusInputSchema },
-  output: { schema: RoadStatusOutputSchema },
-  prompt: `You are a logistics AI assistant specializing in UK road traffic.
-
-Your task is to provide a concise, real-time traffic report for a truck journey.
-
-The departure point is always "The Very Group, Speke, Liverpool, UK".
-The destination is: {{{destination}}}.
-
-Based on current traffic data, road closures, and incidents, provide:
-1.  A brief summary of the road status.
-2.  An estimated time of arrival (ETA).
-
-Keep the summary short and to the point.`,
-});
-
 const roadStatusFlow = ai.defineFlow(
   {
     name: 'roadStatusFlow',
@@ -53,7 +35,18 @@ const roadStatusFlow = ai.defineFlow(
   async (input) => {
     const { output } = await ai.generate({
       model: googleAI.model('gemini-1.5-flash-preview'),
-      prompt: roadStatusPrompt.render({input}).prompt,
+      prompt: `You are a logistics AI assistant specializing in UK road traffic.
+
+Your task is to provide a concise, real-time traffic report for a truck journey.
+
+The departure point is always "The Very Group, Speke, Liverpool, UK".
+The destination is: ${input.destination}.
+
+Based on current traffic data, road closures, and incidents, provide:
+1.  A brief summary of the road status.
+2.  An estimated time of arrival (ETA).
+
+Keep the summary short and to the point.`,
       output: {
         schema: RoadStatusOutputSchema,
       },
