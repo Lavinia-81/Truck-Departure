@@ -1,20 +1,21 @@
 'use server';
-
 /**
- * @fileOverview An AI agent to get road status and warnings for a given destination.
+ * @fileOverview A plant problem diagnosis AI agent.
  *
- * - getRoadStatus - A function that gets the road status.
+ * - diagnosePlant - A function that handles the plant diagnosis process.
+ * - DiagnosePlantInput - The input type for the diagnosePlant function.
+ * - DiagnosePlantOutput - The return type for the diagnosePlant function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
+import {z} from 'genkit';
 
-const RoadStatusInputSchema = z.object({
+export const RoadStatusInputSchema = z.object({
   destination: z.string().describe('The final destination for the truck route.'),
 });
-type RoadStatusInput = z.infer<typeof RoadStatusInputSchema>;
+export type RoadStatusInput = z.infer<typeof RoadStatusInputSchema>;
 
-const RoadStatusOutputSchema = z.object({
+export const RoadStatusOutputSchema = z.object({
   status: z
     .string()
     .describe(
@@ -26,11 +27,12 @@ const RoadStatusOutputSchema = z.object({
       'The estimated time of arrival (ETA) for the route, considering current conditions.'
     ),
 });
-type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
+export type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
 
-const getRoadStatusFlow = ai.defineFlow(
+
+export const roadStatusFlow = ai.defineFlow(
   {
-    name: 'getRoadStatusFlow',
+    name: 'roadStatusFlow',
     inputSchema: RoadStatusInputSchema,
     outputSchema: RoadStatusOutputSchema,
   },
@@ -47,7 +49,3 @@ Consider real-time traffic data, potential delays, and road closures. If there a
     return output!;
   }
 );
-
-export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusOutput> {
-    return getRoadStatusFlow(input);
-}

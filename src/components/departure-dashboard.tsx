@@ -30,7 +30,7 @@ import { useCollection, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { getRoadStatus, RoadStatusOutput } from '@/ai/flows/road-status-flow';
+import { getRoadStatus } from '@/ai/actions/road-status.action';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 
@@ -67,6 +67,11 @@ const carrierStyles: Record<string, CarrierStyle> = {
         className: 'bg-[#A5350D] hover:bg-[#8A2C0A] text-white border-[#8A2C0A]',
         icon: <Route className="h-4 w-4" />
     },
+};
+
+type RoadStatusOutput = {
+    status: string;
+    eta: string;
 };
 
 
