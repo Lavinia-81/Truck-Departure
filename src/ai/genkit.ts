@@ -1,3 +1,5 @@
+'use server';
+
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {config} from 'dotenv';
@@ -11,9 +13,12 @@ if (!apiKey) {
   );
 }
 
+// Inițializăm plugin-ul o singură dată.
+// Cheia API este pasată aici, dacă există.
 const googleAiPlugin = googleAI(apiKey ? {apiKey} : undefined);
 
+// Configurăm Genkit doar cu plugin-ul.
+// Nu mai specificăm modelul sau cheia aici, pentru a evita configurarea invalidă.
 export const ai = genkit({
   plugins: [googleAiPlugin],
-  model: googleAI.model('gemini-1.5-flash', apiKey ? {apiKey} : undefined),
 });
