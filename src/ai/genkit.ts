@@ -13,12 +13,11 @@ if (!apiKey) {
   );
 }
 
-// Inițializăm plugin-ul o singură dată.
-// Cheia API este pasată aici, dacă există.
+// Initialize the plugin once.
+// The API key is passed here, if it exists.
 const googleAiPlugin = googleAI(apiKey ? {apiKey} : undefined);
 
-// Configurăm Genkit doar cu plugin-ul.
-// Nu mai specificăm modelul sau cheia aici, pentru a evita configurarea invalidă.
+// Configure Genkit with just the plugin.
 export const ai = genkit({
   plugins: [googleAiPlugin],
 });
