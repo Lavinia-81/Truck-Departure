@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Edit, Trash2, PlusCircle, Ship, Route, BrainCircuit } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import type { Departure, Status } from '@/lib/types';
+import type { Departure, RoadStatusOutput, Status } from '@/lib/types';
 import { EditDepartureDialog } from './edit-departure-dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,6 @@ import Header from './header';
 import { Loader2, Package, Truck } from 'lucide-react';
 import { STATUSES } from '@/lib/types';
 import { getRoadStatus } from '@/ai/flows/road-status.flow';
-import type { RoadStatusOutput } from '@/ai/flows/road-status.flow';
 import { RouteStatusDialog } from './route-status-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { useCollection,useFirestore } from '@/firebase';
@@ -114,7 +113,7 @@ export default function DepartureDashboard() {
     const input = {
       destination: departure.destination,
       collectionTime: departure.collectionTime,
-      ...(departure.via ? { via: departure.via } : {}),
+      ...(departure.via && { via: departure.via }),
     };
 
     try {

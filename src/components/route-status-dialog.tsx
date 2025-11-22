@@ -10,8 +10,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Route, Clock, AlertTriangle, ShieldCheck } from "lucide-react"
-import type { Departure } from "@/lib/types"
-import type { RoadStatusOutput } from '@/ai/flows/road-status.flow';
+import type { Departure, RoadStatusOutput } from "@/lib/types"
 
 interface RouteStatusDialogProps {
   isOpen: boolean
@@ -63,7 +62,7 @@ export function RouteStatusDialog({
             AI Road Status: {departure?.destination.toUpperCase()}
           </DialogTitle>
           <DialogDescription>
-            Real-time traffic analysis from The Very Group to {departure?.destination}.
+            Real-time analysis for driver's return to depot from {departure?.destination}.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-4">
