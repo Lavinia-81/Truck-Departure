@@ -52,7 +52,7 @@ export function RouteStatusDialog({ isOpen, onOpenChange, departure, routeStatus
         <DialogHeader>
           <DialogTitle>AI Route Status: {departure?.destination.toUpperCase()}</DialogTitle>
           <DialogDescription>
-            Real-time traffic analysis from {departure?.destination} to The Very Group depot in Widnes.
+            Real-time traffic analysis from The Very Group depot to {departure?.destination}.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-6">
@@ -60,7 +60,7 @@ export function RouteStatusDialog({ isOpen, onOpenChange, departure, routeStatus
                 <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground min-h-[300px]">
                     <Loader2 className="h-10 w-10 animate-spin text-primary"/>
                     <p>Performing real-time analysis...</p>
-                    <p className="text-sm text-center max-w-sm">Checking live traffic, weather, and incidents between {departure?.destination} and the Widnes depot.</p>
+                    <p className="text-sm text-center max-w-sm">Checking live traffic, weather, and incidents between the depot and {departure?.destination}.</p>
                 </div>
             )}
             {!isLoading && routeStatus && (
@@ -95,7 +95,7 @@ export function RouteStatusDialog({ isOpen, onOpenChange, departure, routeStatus
                     <div className="flex items-start gap-4">
                         <div className="bg-primary/10 p-2 rounded-full"><Clock className="h-6 w-6 text-primary" /></div>
                         <div>
-                            <p className="font-semibold">Estimated Time of Arrival (ETA)</p>
+                            <p className="font-semibold">Estimated Travel Time</p>
                             <p className="text-muted-foreground">{routeStatus.estimatedTime}</p>
                         </div>
                     </div>

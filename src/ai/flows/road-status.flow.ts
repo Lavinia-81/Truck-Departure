@@ -1,25 +1,23 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import type { RoadStatusInput, RoadStatusOutput } from '@/lib/types';
 import { googleAI } from '@genkit-ai/google-genai';
+import type { RoadStatusInput, RoadStatusOutput } from '@/lib/types';
 
 export async function getRoadStatus(
   input: RoadStatusInput
 ): Promise<RoadStatusOutput> {
-  const prompt = `You are an expert logistics dispatcher for "The Very Group". Your task is to analyze the potential for a driver to be late for their scheduled collection time at the depot in Widnes, UK.
+  const prompt = `You are a logistics expert for "The Very Group". Your task is to provide a route and traffic analysis for a truck delivery.
 
 Analyze the route based on the following information:
-- Current Time: ${new Date().toISOString()}
-- Driver's Assumed Starting Location (last delivery): ${input.destination}
-- Final Arrival Location (Depot): Widnes, UK
-- Scheduled Collection Time at Depot: ${input.collectionTime}
+- Starting Location: The Very Group, Skygate, Derby, DE74 2BB, UK
+- Final Destination: ${input.destination}
 ${input.via ? `- Intermediate Stop (Via): ${input.via}` : ''}
 
 Your analysis must include:
-1.  "optimizedRoute": The best route from the starting location to the Widnes depot.
-2.  "estimatedTime": The estimated time of arrival (ETA) at the Widnes depot.
-3.  "reasoning": A brief explanation for the ETA, considering current average traffic, and weather conditions for the route.
+1.  "optimizedRoute": The best route from the starting location to the final destination.
+2.  "estimatedTime": The estimated travel time for the entire journey.
+3.  "reasoning": A brief explanation for the estimated travel time, considering current average traffic and weather conditions.
 4.  "roadWarnings": A summary of any significant warnings, accidents, road closures, or severe weather. If none, state "No significant warnings."
 5.  "warningLevel": Classify the severity of any issues. Must be one of: 'none', 'moderate', 'severe'.
 
@@ -28,7 +26,7 @@ Return the response as a single, valid JSON object, and nothing else. Do not wra
 
   try {
     const response = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-latest'),
+      model: googleAI.model('gemini-1.5-flash'),
       prompt: prompt,
       config: {
         temperature: 0.2,
@@ -41,7 +39,7 @@ Return the response as a single, valid JSON object, and nothing else. Do not wra
     const match = jsonText.match(/\{[\s\S]*\}/);
 
     if (!match) {
-        throw new Error("No valid JSON object found in the AI response.");
+      throw new Error("No valid JSON object found in the AI response.");
     }
     
     return JSON.parse(match[0]) as RoadStatusOutput;
