@@ -2,6 +2,7 @@
 
 import { ai } from '@/ai/genkit';
 import type { RoadStatusInput, RoadStatusOutput } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export async function getRoadStatus(
   input: RoadStatusInput
@@ -27,7 +28,7 @@ Return the response as a single, valid JSON object, and nothing else. Do not wra
 
   try {
     const response = await ai.generate({
-      model: 'gemini-1.5-flash',
+      model: googleAI.model('gemini-1.5-flash-latest'),
       prompt: prompt,
       config: {
         temperature: 0.2,
