@@ -27,30 +27,14 @@ export const RoadStatusOutputSchema = z.object({
 });
 export type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
 
-
-/**
- * Analyzes a route in real-time using an AI model.
- * This is a Server Action that can be called directly from client components.
- * @param input The route details, conforming to RoadStatusInput schema.
- * @returns A promise that resolves to the route analysis, conforming to RoadStatusOutput schema.
- */
-export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusOutput> {
-  // Define the Genkit flow. A flow orchestrates the AI call.
-  const roadStatusFlow = ai.defineFlow(
-    {
-      name: 'roadStatusFlow',
-      inputSchema: RoadStatusInputSchema,
-      outputSchema: RoadStatusOutputSchema,
-    },
-    async (flowInput) => {
-        // Define the AI prompt with structured input and output.
-        // This prompt instructs the AI on its role, the data it will receive, and the format of its response.
-        const roadStatusPrompt = ai.definePrompt({
-            name: 'roadStatusPrompt',
-            input: { schema: RoadStatusInputSchema.extend({ currentTime: z.string() }) },
-            output: { schema: RoadStatusOutputSchema },
-            model: 'gemini-1.5-flash',
-            prompt: `You are an expert logistics dispatcher for "The Very Group". Your goal is to determine if a driver will be late for their collection time at the depot in Widnes, UK.
+// Define the AI prompt with structured input and output.
+// This prompt instructs the AI on its role, the data it will receive, and the format of its response.
+const roadStatusPrompt = ai.definePrompt({
+    name: 'roadStatusPrompt',
+    input: { schema: RoadStatusInputSchema.extend({ currentTime: z.string() }) },
+    output: { schema: RoadStatusOutputSchema },
+    model: 'gemini-1.5-flash',
+    prompt: `You are an expert logistics dispatcher for "The Very Group". Your goal is to determine if a driver will be late for their collection time at the depot in Widnes, UK.
 
 Current Time: {{{currentTime}}}
 Scheduled Collection Time at Depot: {{{collectionTime}}}
@@ -66,23 +50,39 @@ Your task:
 7.  Classify the situation with a "WarningLevel".
 
 Provide your response in JSON format.`,
-        });
+});
 
-      // Execute the prompt with the current time and the input from the client.
-      const { output } = await roadStatusPrompt({
-        ...flowInput,
-        currentTime: new Date().toISOString(),
-      });
-      
-      if (!output) {
-        throw new Error("AI failed to generate a response.");
-      }
-
-      // Return the structured output from the AI.
-      return output;
+// Define the Genkit flow. A flow orchestrates the AI call.
+const roadStatusFlow = ai.defineFlow(
+  {
+    name: 'roadStatusFlow',
+    inputSchema: RoadStatusInputSchema,
+    outputSchema: RoadStatusOutputSchema,
+  },
+  async (flowInput) => {
+    // Execute the prompt with the current time and the input from the client.
+    const { output } = await roadStatusPrompt({
+      ...flowInput,
+      currentTime: new Date().toISOString(),
+    });
+    
+    if (!output) {
+      throw new Error("AI failed to generate a response.");
     }
-  );
 
-  // Run the flow with the input provided by the client.
+    // Return the structured output from the AI.
+    return output;
+  }
+);
+
+
+/**
+ * Analyzes a route in real-time using an AI model.
+ * This is a Server Action that can be called directly from client components.
+ * @param input The route details, conforming to RoadStatusInput schema.
+ * @returns A promise that resolves to the route analysis, conforming to RoadStatusOutput schema.
+ */
+export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusOutput> {
+  // Run the pre-defined flow with the input provided by the client.
   return await roadStatusFlow(input);
 }
