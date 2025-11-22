@@ -1,126 +1,119 @@
 "use client"
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, Route, Clock, AlertTriangle, ShieldCheck } from "lucide-react"
-import type { Departure, RoadStatusOutput } from "@/lib/types"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator";
+import type { Departure } from "@/lib/types"
+import type { SuggestOptimizedRouteOutput } from "@/ai/flows/suggest-optimized-route";
+import { Loader2, Route, Clock, Lightbulb, TrafficCone, MapPin, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 interface RouteStatusDialogProps {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  departure: Departure | null
-  routeStatus: RoadStatusOutput | null
-  isLoading: boolean
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  departure: Departure | null;
+  routeStatus: SuggestOptimizedRouteOutput | null;
+  isLoading: boolean;
 }
 
-const warningLevelColors = {
-  none: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800",
-  moderate: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-800",
-  severe: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800",
-};
-
-const warningLevelIcons = {
-    none: <ShieldCheck className="h-5 w-5 text-green-500" />,
-    moderate: <AlertTriangle className="h-5 w-5 text-yellow-500" />,
-    severe: <AlertTriangle className="h-5 w-5 text-red-500" />,
-}
-
-export function RouteStatusDialog({
-  isOpen,
-  onOpenChange,
-  departure,
-  routeStatus,
-  isLoading,
-}: RouteStatusDialogProps) {
-  
-  const getTrafficSummary = () => {
-    if (!routeStatus) {
-        if (isLoading) return "Analyzing route...";
-        return "Could not retrieve road status.";
+const warningLevels = {
+    severe: {
+        icon: AlertTriangle,
+        color: "text-destructive",
+        bgColor: "bg-destructive/10",
+        badge: "destructive",
+        title: "Severe Warnings"
+    },
+    moderate: {
+        icon: TrafficCone,
+        color: "text-orange-400",
+        bgColor: "bg-orange-400/10",
+        badge: "default",
+        title: "Moderate Warnings"
+    },
+    none: {
+        icon: CheckCircle2,
+        color: "text-green-500",
+        bgColor: "bg-green-500/10",
+        badge: "default",
+        title: "Route Clear"
     }
-    return routeStatus.roadWarnings || "No significant warnings.";
-  };
+} as const;
+
+
+export function RouteStatusDialog({ isOpen, onOpenChange, departure, routeStatus, isLoading }: RouteStatusDialogProps) {
   
-  const getEta = () => {
-      if (!routeStatus) return "Unknown";
-      return routeStatus.estimatedTime;
-  }
+  const level = routeStatus?.warningLevel || 'none';
+  const warningConfig = warningLevels[level];
+  const Icon = warningConfig.icon;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Route className="h-5 w-5" />
-            AI Road Status: {departure?.destination.toUpperCase()}
-          </DialogTitle>
+          <DialogTitle>Route Status for Trailer {departure?.trailerNumber}</DialogTitle>
           <DialogDescription>
-            Real-time analysis for driver's return to depot from {departure?.destination}.
+            Live traffic warnings for the route from <span className="font-semibold">Sky Gate Derby DE74 2BB</span> to <span className="font-semibold">{departure?.destination}</span>.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 pt-4">
+        <div className="py-4 space-y-6">
             {isLoading && (
-                 <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4 text-muted-foreground">Analyzing traffic data...</p>
+                <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary"/>
+                    <p>Checking for live traffic warnings...</p>
                 </div>
             )}
-
             {!isLoading && routeStatus && (
-                 <Alert className={warningLevelColors[routeStatus.warningLevel]}>
-                    {warningLevelIcons[routeStatus.warningLevel]}
-                    <AlertTitle>Traffic Summary</AlertTitle>
-                    <AlertDescription>
-                        {getTrafficSummary()}
-                    </AlertDescription>
-                </Alert>
-            )}
-            
-             {!isLoading && !routeStatus && (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Analysis Failed</AlertTitle>
-                    <AlertDescription>
-                        Could not retrieve traffic analysis. Please check the logs or try again later.
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            <div className="grid gap-4 grid-cols-2">
-                <div className="flex flex-col gap-1 rounded-lg border p-3">
-                    <dt className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Estimated Time of Arrival (ETA)
-                    </dt>
-                    <dd className="text-xl font-semibold">{getEta()}</dd>
+                <>
+                <div className="flex items-start gap-4">
+                    <div className={cn("p-2 rounded-full", warningConfig.bgColor)}>
+                        <Icon className={cn("h-6 w-6", warningConfig.color)} />
+                    </div>
+                    <div>
+                        <p className={cn("font-semibold", warningConfig.color)}>{warningConfig.title}</p>
+                        <p className="text-muted-foreground">{routeStatus.roadWarnings}</p>
+                        {level === 'severe' && (
+                            <Badge variant="destructive" className="mt-2">Action may be required</Badge>
+                        )}
+                         {level === 'moderate' && (
+                            <Badge variant="outline" className="mt-2 border-orange-400 text-orange-400">Caution Advised</Badge>
+                        )}
+                        {level === 'none' && (
+                           <Badge className="mt-2 bg-green-600/80 hover:bg-green-700">Route Clear</Badge>
+                        )}
+                    </div>
                 </div>
-                 <div className="flex flex-col gap-1 rounded-lg border p-3">
-                    <dt className="text-sm font-medium text-muted-foreground">Warning Level</dt>
-                    <dd className="text-xl font-semibold capitalize">
-                        <Badge variant="outline" className={routeStatus ? warningLevelColors[routeStatus.warningLevel] : ""}>
-                            {routeStatus?.warningLevel || 'N/A'}
-                        </Badge>
-                    </dd>
+                <Separator/>
+                <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 p-2 rounded-full"><Route className="h-6 w-6 text-primary" /></div>
+                    <div>
+                        <p className="font-semibold">Suggested Route</p>
+                        <p className="text-muted-foreground">{routeStatus.optimizedRoute}</p>
+                    </div>
                 </div>
-            </div>
-
-            {routeStatus?.optimizedRoute && (
-                <div className="space-y-2">
-                    <h3 className="font-semibold">Suggested Route</h3>
-                    <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">{routeStatus.optimizedRoute}</p>
+                <Separator/>
+                <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 p-2 rounded-full"><Clock className="h-6 w-6 text-primary" /></div>
+                    <div>
+                        <p className="font-semibold">Estimated Time</p>
+                        <p className="text-muted-foreground">{routeStatus.estimatedTime}</p>
+                    </div>
                 </div>
+                <Separator/>
+                <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 p-2 rounded-full"><Lightbulb className="h-6 w-6 text-primary" /></div>
+                    <div>
+                        <p className="font-semibold">AI Reasoning</p>
+                        <p className="text-muted-foreground">{routeStatus.reasoning}</p>
+                    </div>
+                </div>
+                </>
             )}
-             {routeStatus?.reasoning && (
-                <div className="space-y-2">
-                    <h3 className="font-semibold">Reasoning</h3>
-                    <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">{routeStatus.reasoning}</p>
+            {!isLoading && !routeStatus && (
+                <div className="flex flex-col items-center justify-center gap-4 text-destructive">
+                     <TrafficCone className="h-10 w-10 "/>
+                    <p className="font-semibold">Could not retrieve route status</p>
+                    <p className="text-sm text-center">There was an error fetching the live traffic data. Please try again.</p>
                 </div>
             )}
         </div>
