@@ -36,9 +36,14 @@ Return the response as a single, valid JSON object, and nothing else. Do not wra
 
     const jsonText = response.text();
     // Clean the response to ensure it's a valid JSON string
-    const cleanedJson = jsonText.replace(/^```json\s*|```\s*$/g, '');
+    // This regex finds the first '{' and the last '}' and extracts everything in between.
+    const match = jsonText.match(/\{[\s\S]*\}/);
+
+    if (!match) {
+        throw new Error("No valid JSON object found in the AI response.");
+    }
     
-    return JSON.parse(cleanedJson) as RoadStatusOutput;
+    return JSON.parse(match[0]) as RoadStatusOutput;
 
   } catch (error) {
     console.error("Error fetching or parsing AI response:", error);
