@@ -10,20 +10,20 @@ import {z} from 'genkit';
 // Define the input schema for the road status analysis.
 // This schema is used for validating the input data.
 export const RoadStatusInputSchema = z.object({
-  destination: z.string().describe('The final destination of the route.'),
+  destination: z.string().describe('The final destination of the route, which is the assumed starting point for the driver returning to the depot.'),
   via: z.string().optional().describe('The first stop on the route, if applicable.'),
-  collectionTime: z.string().describe("The truck's scheduled collection time in ISO format."),
+  collectionTime: z.string().describe("The truck's scheduled collection time in ISO format at the depot."),
 });
 export type RoadStatusInput = z.infer<typeof RoadStatusInputSchema>;
 
 // Define the output schema for the road status analysis.
 // This ensures the AI model returns data in a consistent, structured format.
 export const RoadStatusOutputSchema = z.object({
-  optimizedRoute: z.string().describe('The suggested optimized route.'),
-  estimatedTime: z.string().describe('The estimated time of arrival for the optimized route.'),
-  reasoning: z.string().describe('The reasoning behind the suggested route optimization.'),
-  roadWarnings: z.string().optional().describe('A summary of any warnings, accidents, or significant traffic issues on the suggested route. If there are no issues, this should state "No significant warnings."'),
-  warningLevel: z.enum(['none', 'moderate', 'severe']).describe('A classification of the warning severity. "none" for no issues, "moderate" for traffic or minor delays, "severe" for accidents or road closures.'),
+  optimizedRoute: z.string().describe('The suggested route from the starting location to the depot.'),
+  estimatedTime: z.string().describe('The estimated time of arrival at the depot (Widnes, UK).'),
+  reasoning: z.string().describe('The reasoning behind the time estimate, including analysis of traffic and weather.'),
+  roadWarnings: z.string().optional().describe('A summary of any warnings, accidents, or significant traffic or weather issues on the suggested route. If there are no issues, this should state "No significant warnings."'),
+  warningLevel: z.enum(['none', 'moderate', 'severe']).describe('A classification of the warning severity. "none" for no issues, "moderate" for traffic or minor delays, "severe" for accidents, road closures, or severe weather.'),
 });
 export type RoadStatusOutput = z.infer<typeof RoadStatusOutputSchema>;
 
@@ -47,19 +47,23 @@ export async function getRoadStatus(input: RoadStatusInput): Promise<RoadStatusO
         // This prompt instructs the AI on its role, the data it will receive, and the format of its response.
         const roadStatusPrompt = ai.definePrompt({
             name: 'roadStatusPrompt',
-            input: { schema: RoadStatusInputSchema.extend({ currentTime: z.string(), via_or_na: z.string() }) },
+            input: { schema: RoadStatusInputSchema.extend({ currentTime: z.string() }) },
             output: { schema: RoadStatusOutputSchema },
             model: 'gemini-1.5-flash',
-            prompt: `As an expert route logistics AI for "The Very Group," your task is to provide a real-time route analysis.
+            prompt: `You are an expert logistics dispatcher for "The Very Group". Your goal is to determine if a driver will be late for their collection time at the depot in Widnes, UK.
 
 Current Time: {{{currentTime}}}
+Scheduled Collection Time at Depot: {{{collectionTime}}}
+Driver's Assumed Current Location (their last destination): {{{destination}}}
 
-Route Details:
-- Final Destination: {{{destination}}}
-- Via (First Stop): {{{via_or_na}}}
-- Scheduled Collection Time: {{{collectionTime}}}
-
-Analyze the route from the depot (assume Widnes, UK) to the final destination, considering the collection time. If a 'Via' location is provided and is not 'N/A', include it as the first stop. Provide an optimized route, a realistic estimated time of arrival (ETA), any road warnings (like traffic, accidents, closures), and a warning level. The ETA should be calculated from the collection time.
+Your task:
+1.  Analyze the route FROM the driver's assumed current location ({{{destination}}}) TO the depot (Widnes, UK).
+2.  Consider real-time traffic data AND current weather conditions along this route.
+3.  Calculate the Estimated Time of Arrival (ETA) at the depot.
+4.  Based on the ETA and the Scheduled Collection Time, determine if the driver will be late.
+5.  Provide a clear "Reasoning" explaining your conclusion. Mention traffic, accidents, or weather if they are factors.
+6.  Summarize any major issues in "Road Warnings".
+7.  Classify the situation with a "WarningLevel".
 
 Provide your response in JSON format.`,
         });
@@ -68,7 +72,6 @@ Provide your response in JSON format.`,
       const { output } = await roadStatusPrompt({
         ...flowInput,
         currentTime: new Date().toISOString(),
-        via_or_na: flowInput.via || 'N/A',
       });
       
       if (!output) {
