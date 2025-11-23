@@ -1,267 +1,267 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
+import * as React from 'react';
+import { useState } from 'react';
+import { useAuth } from '@/firebase/provider';
+import { useRouter } from 'next/navigation';
+import { useCollection } from '@/firebase';
+import { useFirestore } from '@/firebase/provider';
+import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Package, Truck, Ship, Route, Clock as ClockIcon, Tag, MapPin, ChevronRight, DoorOpen } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import type { Departure, Status } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import Clock from '@/components/clock';
-import { STATUSES } from '@/lib/types';
-import './scrolling-animation.css';
-import { useCollection, useFirestore } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { Loader2, Trash2, UserPlus, ShieldCheck } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-
-const statusColors: Record<Status, string> = {
-  Departed: 'bg-green-200 text-green-800 border-green-300 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800',
-  Loading: 'bg-fuchsia-200 text-fuchsia-800 border-fuchsia-300 dark:bg-fuchsia-900/50 dark:text-fuchsia-300 dark:border-fuchsia-800',
-  Waiting: 'bg-blue-200 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800',
-  Cancelled: 'bg-red-200 text-red-800 border-red-300 dark:bg-red-800/80 dark:text-red-100 dark:border-red-700',
-  Delayed: 'bg-pink-200 text-pink-800 border-pink-300 dark:bg-orange-900/50 dark:text-orange-300 dark:border-orange-800',
-};
-
-interface CarrierStyle {
-  className: string;
-  icon?: React.ReactNode;
-  iconUrl?: string;
-  logoClassName?: string;
+// Provide a local JSX namespace so TypeScript has IntrinsicElements available in case
+// the global React types or tsconfig JSX settings are missing.
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
 }
 
-const carrierStyles: Record<string, CarrierStyle> = {
-  'Royal Mail': { className: 'bg-red-500 hover:bg-red-600 text-white border-red-600', icon: <Package className="h-5 w-5" /> },
-  'EVRI': { 
-    className: 'bg-sky-500 hover:bg-sky-600 text-white border-sky-600', 
-    icon: <Truck className="h-5 w-5 -scale-x-100" />
-  },
-  'The Very Group': {
-    className: 'bg-black hover:bg-gray-800 text-white border-gray-800',
-    iconUrl: 'https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png',
-    logoClassName: 'bg-white p-1 rounded-sm'
-  },
-  'Yodel': {
-    className: 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700',
-    icon: <Truck className="h-5 w-5" />
-  },
-  'McBurney': { 
-    className: 'bg-[#f1a10d] hover:bg-[#d98e0b] text-white border-[#d98e0b]', 
-    icon: <Ship className="h-5 w-5" />
-  },
-  'Montgomery': { 
-    className: 'bg-[#A5350D] hover:bg-[#8A2C0A] text-white border-[#8A2C0A]', 
-    icon: <Route className="h-5 w-5" />
-  },
-};
+interface Admin {
+  id: string; // email in this case
+}
 
-
-export default function DisplayPage() {
+export default function UserManagementPage() {
+  const { user, isAdmin, loading } = useAuth();
+  const router = useRouter();
   const firestore = useFirestore();
-  const departuresQuery = firestore ? query(collection(firestore, 'departures'), orderBy('collectionTime', 'asc')) : null;
-  const { data: departures, isLoading: isLoadingDepartures } = useCollection<Departure>(departuresQuery);
+  const { toast } = useToast();
 
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const tableBodyRef = useRef<HTMLTableSectionElement>(null);
-  const mobileContainerRef = useRef<HTMLDivElement>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
-  
-  useEffect(() => {
-    if (isLoadingDepartures || !departures) return;
+  const adminsQuery = firestore ? collection(firestore, 'admins') : null;
+  const { data: admins, isLoading: isLoadingAdmins } = useCollection<Admin>(adminsQuery);
 
-    const checkOverflow = () => {
-        const isMobile = window.innerWidth < 768;
-        const container = isMobile ? mobileContainerRef.current : tableContainerRef.current;
-        const content = isMobile ? container?.firstChild as HTMLElement : tableBodyRef.current;
-        
-        if (container && content) {
-            const containerHeight = container.clientHeight;
-            const contentHeight = content.scrollHeight;
-            setIsScrolling(contentHeight > containerHeight);
-        } else {
-            setIsScrolling(false);
-        }
-    };
-    
-    const timer = setTimeout(checkOverflow, 100);
-    const debouncedCheckOverflow = () => setTimeout(checkOverflow, 100);
-    window.addEventListener('resize', debouncedCheckOverflow);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    return () => {
-        clearTimeout(timer);
-        window.removeEventListener('resize', debouncedCheckOverflow);
-    };
-  }, [departures, isLoadingDepartures]);
-
-
-  const sortedDepartures = departures || [];
-  
-  const renderTableRows = (departuresToRender: Departure[]) => {
-    if (!departuresToRender || departuresToRender.length === 0) return null;
-    return departuresToRender.map(d => {
-        const carrierStyle = carrierStyles[d.carrier] || {};
-        return (
-          <TableRow key={d.id} className={cn('transition-colors h-16 md:h-20', statusColors[d.status])}>
-            <TableCell>
-              <Badge className={cn('flex items-center gap-2 text-base md:text-lg p-2', carrierStyle?.className)}>
-                {carrierStyle?.icon}
-                 {carrierStyle?.iconUrl && (
-                  <div className={carrierStyle.logoClassName}>
-                    <Image src={carrierStyle.iconUrl} alt={`${d.carrier} logo`} width={24} height={24} className="h-auto w-6" />
-                  </div>
-                )}
-                <span>{d.carrier}</span>
-              </Badge>
-            </TableCell>
-            <TableCell>{d.via || '–'}</TableCell>
-            <TableCell className="font-medium">{d.destination}</TableCell>
-            <TableCell>{d.trailerNumber}</TableCell>
-            <TableCell className="font-bold text-xl md:text-2xl">{format(parseISO(d.collectionTime), 'HH:mm')}</TableCell>
-            <TableCell className="font-bold text-xl md:text-2xl">{d.bayDoor || 'N/A'}</TableCell>
-            <TableCell>
-              <Badge variant="outline" className="border-current text-base md:text-lg p-2">
-                {d.status}
-              </Badge>
-            </TableCell>
-          </TableRow>
-        );
-      });
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <span className="h-12 w-12 animate-spin text-primary"><Loader2 /></span>
+        <p className="mt-4 text-muted-foreground">Loading...</p>
+      </div>
+    );
   }
 
-  const renderMobileCards = (departuresToRender: Departure[]) => {
-    if (!departuresToRender || departuresToRender.length === 0) return null;
-    return departuresToRender.map(d => {
-      const carrierStyle = carrierStyles[d.carrier] || {};
-      return (
-        <Card key={d.id} className={cn("mb-4 border-l-4", statusColors[d.status], `border-${statusColors[d.status].split(' ')[0]}`)}>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex justify-between items-center">
-              <Badge className={cn('flex items-center gap-2 text-base p-2', carrierStyle?.className)}>
-                  {carrierStyle?.icon}
-                  {carrierStyle?.iconUrl && (
-                    <div className={carrierStyle.logoClassName}>
-                      <Image src={carrierStyle.iconUrl} alt={`${d.carrier} logo`} width={20} height={20} className="h-auto w-5" />
-                    </div>
-                  )}
-                  <span>{d.carrier}</span>
-              </Badge>
-              <Badge variant="outline" className="border-current text-base p-2">{d.status}</Badge>
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
+  if (!isAdmin) {
+     return (
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+            <div className="text-center p-8 border rounded-lg">
+                <h1 className="text-2xl font-bold text-destructive">Access Denied</h1>
+                <p className="text-muted-foreground mt-2">You do not have permission to access this page.</p>
             </div>
-            <div className='flex items-center text-lg'>
-                <MapPin className="h-5 w-5 mr-3 text-muted-foreground" />
-                <span className="font-medium">{d.destination}</span>
-                {d.via && <><ChevronRight className="h-5 w-5 mx-2 text-muted-foreground" /> <span className='text-muted-foreground text-base'>{d.via}</span></>}
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div className="flex items-center"><ClockIcon className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-bold text-base">{format(parseISO(d.collectionTime), 'HH:mm')}</span></div>
-                <div className="flex items-center"><DoorOpen className="h-4 w-4 mr-2 text-muted-foreground" /> Bay <span className="font-bold text-base ml-2">{d.bayDoor || 'N/A'}</span></div>
-                <div className="flex items-center"><Tag className="h-4 w-4 mr-2 text-muted-foreground" /> {d.trailerNumber}</div>
-                {d.sealNumber && <div className="flex items-center"><Tag className="h-4 w-4 mr-2 text-muted-foreground" /> {d.sealNumber}</div>}
-            </div>
-          </CardContent>
-        </Card>
-      )
-    });
+        </div>
+    )
+  }
+
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !newAdminEmail) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newAdminEmail)) {
+        toast({
+            variant: "destructive",
+            title: "Invalid Email",
+            description: "Please enter a valid email address.",
+        });
+        return;
+    }
+    
+    const normalizedEmail = newAdminEmail.toLowerCase();
+
+    if (admins?.some(admin => admin.id.toLowerCase() === normalizedEmail)) {
+         toast({
+            variant: "destructive",
+            title: "Administrator Exists",
+            description: "This user already has admin privileges.",
+        });
+        return;
+    }
+
+
+    setIsSubmitting(true);
+    try {
+      const adminDocRef = doc(firestore, 'admins', normalizedEmail);
+      // We don't need to store any data in the doc, the email ID is enough
+      await setDoc(adminDocRef, {}); 
+      toast({
+        title: 'Administrator Added',
+        description: `${newAdminEmail} now has admin privileges.`,
+      });
+      setNewAdminEmail('');
+    } catch (error) {
+      console.error("Error adding admin:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to add administrator.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const animationDuration = sortedDepartures ? sortedDepartures.length * 15 : 0;
+  const handleDeleteAdmin = async (adminId: string) => {
+    if (!firestore) return;
+
+    const normalizedAdminId = adminId.toLowerCase();
+
+    if (user?.email?.toLowerCase() === normalizedAdminId) {
+        toast({
+            variant: "destructive",
+            title: "Action Not Allowed",
+            description: "You cannot remove your own admin privileges.",
+        });
+        return;
+    }
+
+    try {
+      await deleteDoc(doc(firestore, 'admins', normalizedAdminId));
+      toast({
+        title: 'Administrator Removed',
+        description: `${adminId} no longer has admin privileges.`,
+      });
+    } catch (error) {
+      console.error("Error removing admin:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to remove administrator.',
+      });
+    }
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-background text-lg md:text-xl">
-      <header className="flex items-center justify-between gap-4 border-b bg-background px-4 py-3 md:px-6 flex-shrink-0">
-        <div className="bg-white p-2 rounded-md shadow-sm">
-         <div className="w-[120px] h-auto">
-            <Image src="https://marcommnews.com/wp-content/uploads/2020/05/1200px-Very-Group-Logo-2.svg_-1024x397.png" alt="The Very Group Logo" width={150} height={58} className="h-auto w-full" priority />
-          </div>
-        </div>
-        <div className="flex flex-col items-center">
-            <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-center">
-              Truck Departure Board
-            </h1>
-            <div className="text-xl md:text-2xl">
-              <Clock />
-            </div>
-        </div>
-        <div className="w-[120px]" /> 
-      </header>
-      <main className="flex-1 flex flex-col space-y-4 p-2 md:p-8 pt-6 overflow-hidden">
-        {/* Desktop View (Table) */}
-        <Card className="hidden md:flex flex-1 flex-col overflow-hidden">
-          <CardContent className="p-2 md:p-4 flex-1 flex flex-col overflow-hidden">
-            <div className="relative w-full overflow-hidden flex-1" ref={tableContainerRef}>
+    <div className="flex flex-1 flex-col p-4 md:p-8">
+        <header className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+            <p className="text-muted-foreground">Add or remove users with administrator privileges.</p>
+        </header>
+
+      <div className="max-w-4xl mx-auto w-full">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Administrator</CardTitle>
+            <CardDescription>Enter the email address of the user you want to grant admin access to.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddAdmin} className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={newAdminEmail}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAdminEmail(e.target.value)}
+                disabled={isSubmitting}
+                className="text-base md:text-sm"
+              />
+                <Button type="submit" disabled={isSubmitting || !newAdminEmail}>
+                {isSubmitting ? <span className="mr-2 h-4 w-4 animate-spin"><Loader2 /></span> : <span className="mr-2 h-4 w-4"><UserPlus /></span>}
+                Add Admin
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      <div className="mt-8 max-w-4xl mx-auto w-full">
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Administrators</CardTitle>
+             <CardDescription>This is a list of all users with administrator privileges.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-lg overflow-hidden">
               <Table>
-                <TableHeader className="bg-primary/90 text-xl md:text-2xl sticky top-0 z-10">
-                  <TableRow className="border-primary/90 hover:bg-primary/90">
-                    <TableHead className="text-primary-foreground">Carrier</TableHead>
-                    <TableHead className="text-primary-foreground">Via</TableHead>
-                    <TableHead className="text-primary-foreground">Destination</TableHead>
-                    <TableHead className="text-primary-foreground">Trailer</TableHead>
-                    <TableHead className="text-primary-foreground">Time</TableHead>
-                    <TableHead className="text-primary-foreground">Bay</TableHead>
-                    <TableHead className="text-primary-foreground">Status</TableHead>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email Address</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                 <TableBody 
-                    ref={tableBodyRef} 
-                    className={cn("text-base md:text-lg", { 'scrolling-content': isScrolling })}
-                    style={{ animationDuration: isScrolling ? `${animationDuration}s` : undefined }}
-                  >
-                    {isLoadingDepartures ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center h-48 text-2xl">
-                          Loading Departures...
+                <TableBody>
+                  {isLoadingAdmins ? (
+                    <TableRow>
+                        <TableCell colSpan={2} className="h-24 text-center">
+                        <span className="mx-auto h-6 w-6 animate-spin text-muted-foreground"><Loader2 /></span>
+                      </TableCell>
+                    </TableRow>
+                  ) : admins && admins.length > 0 ? (
+                    admins.map((admin) => (
+                      <TableRow key={admin.id}>
+                        <TableCell className="font-medium flex items-center gap-2">
+                          {admin.id}
+                          {user?.email?.toLowerCase() === admin.id.toLowerCase() && (
+                              <span className="h-5 w-5 text-sky-500"><ShieldCheck /></span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={user?.email?.toLowerCase() === admin.id.toLowerCase()}
+                                  >
+                                  <span className="h-4 w-4"><Trash2 /></span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently revoke admin access for <span className='font-bold'>{admin.id}</span>. They will no longer be able to manage departures.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => handleDeleteAdmin(admin.id)}
+                                >
+                                  Remove Access
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </TableCell>
                       </TableRow>
-                    ) : sortedDepartures.length > 0 ? (
-                      <>
-                       {renderTableRows(sortedDepartures)}
-                       {isScrolling && renderTableRows(sortedDepartures)}
-                      </>
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center h-48 text-2xl">
-                          No Departures Scheduled
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="h-24 text-center">
+                        No administrators found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
               </Table>
-              <div className={cn("absolute inset-0 w-full h-full pointer-events-none", { 'scrolling-container': isScrolling })}></div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Mobile View (Cards) */}
-        <div ref={mobileContainerRef} className="md:hidden flex-1 overflow-y-auto space-y-4 relative">
-          <div 
-            className={cn({ 'scrolling-content': isScrolling })}
-            style={{ animationDuration: isScrolling ? `${animationDuration}s` : undefined }}>
-            {isLoadingDepartures ? (
-              <p className="text-center text-muted-foreground p-8">Loading Departures...</p>
-            ) : sortedDepartures.length > 0 ? (
-              <>
-                {renderMobileCards(sortedDepartures)}
-                {isScrolling && renderMobileCards(sortedDepartures)}
-              </>
-            ) : (
-              <p className="text-center text-muted-foreground p-8">No Departures Scheduled</p>
-            )}
-          </div>
-           <div className={cn("absolute inset-0 w-full h-full pointer-events-none", { 'scrolling-container': isScrolling })}></div>
-        </div>
-      </main>
-      <footer className="sticky bottom-0 border-t bg-background px-4 py-2 md:px-6 flex-shrink-0">
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm md:text-base">
-            <span className="font-semibold text-base md:text-lg mr-2 md:mr-4">Legend:</span>
-            {STATUSES.map((status) => (
-              <div key={status} className="flex items-center gap-2">
-                <div className={cn("h-3 w-3 md:h-4 md:w-4 rounded-full", statusColors[status])}></div>
-                <span>{status}</span>
-              </div>
-            ))}
-          </div>
-      </footer>
+      </div>
+      </div>
     </div>
   );
 }

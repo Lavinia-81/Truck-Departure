@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from 'react';
 import { useState } from 'react';
 import { useAuth } from '@/firebase/provider';
 import { useRouter } from 'next/navigation';
@@ -24,6 +25,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
+// Provide a local JSX namespace so TypeScript has IntrinsicElements available in case
+// the global React types or tsconfig JSX settings are missing.
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+}
+
 interface Admin {
   id: string; // email in this case
 }
@@ -43,7 +54,7 @@ export default function UserManagementPage() {
   if (loading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <span className="h-12 w-12 animate-spin text-primary"><Loader2 /></span>
         <p className="mt-4 text-muted-foreground">Loading...</p>
       </div>
     );
@@ -150,104 +161,107 @@ export default function UserManagementPage() {
             <p className="text-muted-foreground">Add or remove users with administrator privileges.</p>
         </header>
 
-      <Card className="max-w-4xl mx-auto w-full">
-        <CardHeader>
-          <CardTitle>Add New Administrator</CardTitle>
-          <CardDescription>Enter the email address of the user you want to grant admin access to.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAddAdmin} className="flex gap-2">
-            <Input
-              type="email"
-              placeholder="user@example.com"
-              value={newAdminEmail}
-              onChange={(e) => setNewAdminEmail(e.target.value)}
-              disabled={isSubmitting}
-              className="text-base md:text-sm"
-            />
-            <Button type="submit" disabled={isSubmitting || !newAdminEmail}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-              Add Admin
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-8 max-w-4xl mx-auto w-full">
-        <CardHeader>
-          <CardTitle>Current Administrators</CardTitle>
-           <CardDescription>This is a list of all users with administrator privileges.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email Address</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingAdmins ? (
+      <div className="max-w-4xl mx-auto w-full">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Administrator</CardTitle>
+            <CardDescription>Enter the email address of the user you want to grant admin access to.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddAdmin} className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="user@example.com"
+                value={newAdminEmail}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAdminEmail(e.target.value)}
+                disabled={isSubmitting}
+                className="text-base md:text-sm"
+              />
+                <Button type="submit" disabled={isSubmitting || !newAdminEmail}>
+                {isSubmitting ? <span className="mr-2 h-4 w-4 animate-spin"><Loader2 /></span> : <span className="mr-2 h-4 w-4"><UserPlus /></span>}
+                Add Admin
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      <div className="mt-8 max-w-4xl mx-auto w-full">
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Administrators</CardTitle>
+             <CardDescription>This is a list of all users with administrator privileges.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={2} className="h-24 text-center">
-                      <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-                    </TableCell>
+                    <TableHead>Email Address</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : admins && admins.length > 0 ? (
-                  admins.map((admin) => (
-                    <TableRow key={admin.id}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        {admin.id}
-                        {user?.email?.toLowerCase() === admin.id.toLowerCase() && (
-                            <ShieldCheck className="h-5 w-5 text-sky-500" />
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                disabled={user?.email?.toLowerCase() === admin.id.toLowerCase()}
-                                >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently revoke admin access for <span className='font-bold'>{admin.id}</span>. They will no longer be able to manage departures.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive hover:bg-destructive/90"
-                                onClick={() => handleDeleteAdmin(admin.id)}
-                              >
-                                Remove Access
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingAdmins ? (
+                    <TableRow>
+                        <TableCell colSpan={2} className="h-24 text-center">
+                        <span className="mx-auto h-6 w-6 animate-spin text-muted-foreground"><Loader2 /></span>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={2} className="h-24 text-center">
-                      No administrators found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : admins && admins.length > 0 ? (
+                    admins.map((admin) => (
+                      <TableRow key={admin.id}>
+                        <TableCell className="font-medium flex items-center gap-2">
+                          {admin.id}
+                          {user?.email?.toLowerCase() === admin.id.toLowerCase() && (
+                              <span className="h-5 w-5 text-sky-500"><ShieldCheck /></span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  disabled={user?.email?.toLowerCase() === admin.id.toLowerCase()}
+                                  >
+                                  <span className="h-4 w-4"><Trash2 /></span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently revoke admin access for <span className='font-bold'>{admin.id}</span>. They will no longer be able to manage departures.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => handleDeleteAdmin(admin.id)}
+                                >
+                                  Remove Access
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="h-24 text-center">
+                        No administrators found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      </div>
     </div>
   );
 }

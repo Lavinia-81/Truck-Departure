@@ -106,11 +106,18 @@ const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
     React.ComponentProps<"div"> & {
+      // payload can be provided by Recharts' Tooltip; make it explicit for TS
+      payload?: any
       hideLabel?: boolean
       hideIndicator?: boolean
       indicator?: "line" | "dot" | "dashed"
       nameKey?: string
       labelKey?: string
+      label?: string | number
+      labelFormatter?: (value: any, payload: any) => React.ReactNode
+      labelClassName?: string
+      formatter?: (value: any, name: string, item: any, index: number, payload: any) => React.ReactNode
+      color?: string
     }
 >(
   (
@@ -185,7 +192,7 @@ const ChartTooltipContent = React.forwardRef<
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
+          {payload.map((item: any, index: number) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
             const indicatorColor = color || item.payload.fill || item.color
@@ -256,29 +263,34 @@ const ChartTooltipContent = React.forwardRef<
 )
 ChartTooltipContent.displayName = "ChartTooltip"
 
-const ChartLegend = RechartsPrimitive.Legend
 
-const ChartLegendContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
->(
-  (
-    { className, hideIcon = false, payload, verticalAlign = "bottom", nameKey },
-    ref
-  ) => {
-    const { config } = useChart()
+type ChartLegendContentProps = {
+  className?: string;
+  hideIcon?: boolean;
+  nameKey?: string;
+  verticalAlign?: "top" | "middle" | "bottom";
+  payload?: {
+    value?: string;
+    color?: string;
+    dataKey?: string;
+    type?: string;
+    inactive?: boolean;
+    name?: string;
+  }[];
+} & React.HTMLAttributes<HTMLDivElement>;
+
+const ChartLegendContent = React.forwardRef<HTMLDivElement, ChartLegendContentProps>(
+  ({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey, ...props }, ref) => {
+    const { config } = useChart();
 
     if (!payload?.length) {
-      return null
+      return null;
     }
 
     return (
       <div
         ref={ref}
+        {...props}
         className={cn(
           "flex items-center justify-center gap-4",
           verticalAlign === "top" ? "pb-3" : "pt-3",
@@ -286,8 +298,8 @@ const ChartLegendContent = React.forwardRef<
         )}
       >
         {payload.map((item) => {
-          const key = `${nameKey || item.dataKey || "value"}`
-          const itemConfig = getPayloadConfigFromPayload(config, item, key)
+          const key = `${nameKey || item.dataKey || "value"}`;
+          const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
           return (
             <div
@@ -308,13 +320,16 @@ const ChartLegendContent = React.forwardRef<
               )}
               {itemConfig?.label}
             </div>
-          )
+          );
         })}
       </div>
-    )
+    );
   }
-)
-ChartLegendContent.displayName = "ChartLegend"
+);
+ChartLegendContent.displayName = "ChartLegend";
+
+
+
 
 // Helper to extract item config from a payload.
 function getPayloadConfigFromPayload(
@@ -359,7 +374,7 @@ export {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
   ChartLegendContent,
   ChartStyle,
+  useChart,
 }

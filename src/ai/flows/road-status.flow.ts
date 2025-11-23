@@ -33,9 +33,10 @@ Return the response as a single, valid JSON object, and nothing else. Do not wra
       },
     });
 
-    const jsonText = response.text();
+    // aici folosim direct proprietatea text
+    const jsonText = response.text;
+
     // Clean the response to ensure it's a valid JSON string
-    // This regex finds the first '{' and the last '}' and extracts everything in between.
     const match = jsonText.match(/\{[\s\S]*\}/);
 
     if (!match) {
@@ -46,7 +47,6 @@ Return the response as a single, valid JSON object, and nothing else. Do not wra
 
   } catch (error) {
     console.error("Error fetching or parsing AI response:", error);
-    // In case of any error (API call, parsing, etc.), re-throw it so the component can catch it.
     throw new Error(`Failed to get traffic analysis from AI. Details: ${(error as Error).message}`);
   }
 }

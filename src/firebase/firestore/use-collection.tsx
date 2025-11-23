@@ -4,11 +4,28 @@ import {
   Query,
   collection,
   onSnapshot,
+  query,
+  where,
 } from 'firebase/firestore';
-import { useEffect, useState, useMemo } from 'react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
+export interface UseCollectionOptions {
+  deps?: any[];
+}
+
+export function useCollection<T>(path: string): {
+  data: (T & { id: string })[] | null;
+  isLoading: boolean;
+  error: Error | null;
+};
+export function useCollection<T>(
+  query: Query | null
+): {
+  data: (T & { id: string })[] | null;
+  isLoading: boolean;
+  error: Error | null;
+};
 export function useCollection<T>(
   pathOrQuery: string | Query | null
 ): {
@@ -38,7 +55,6 @@ export function useCollection<T>(
       }
       return;
     }
-
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -50,13 +66,8 @@ export function useCollection<T>(
         setError(null);
       },
       (err) => {
-        const path = 'path' in q ? q.path : 'unknown path';
-        const permissionError = new FirestorePermissionError({
-          path: path,
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setError(permissionError);
+        console.error(err);
+        setError(err);
       }
     );
 
